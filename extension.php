@@ -83,7 +83,6 @@ class ImageCacheExtension extends Minz_Extension
         }
 
         $doc = self::loadContentAsDOM($content);
-
         self::handleImages($doc, "self::uploadUrl", "self::uploadSetUrls", "self::uploadUrl");
     }
 
@@ -92,31 +91,41 @@ class ImageCacheExtension extends Minz_Extension
         $images = $doc->getElementsByTagName("img");
         foreach ($images as $image) {
             if ($image->hasAttribute("src")) {
-                $result = $imgCallback($image->getAttribute("src"));
+                $src = $image->getAttribute("src");
+                Minz_Log::info("ImageCache: found image $src");
+                $result = $imgCallback($src);
                 if ($result) {
                     $image->setAttribute("src", $result);
+                    Minz_Log::info("ImageCache: replaced with $result");
                 }
             }
             if ($image->hasAttribute("srcset")) {
-                $result = preg_replace_callback("/(?:([^\s,]+)(\s*(?:\s+\d+[wx])(?:,\s*)?))/", $imgSetCallback, $image->getAttribute("srcset"));
+                $srcSet = $image->getAttribute("srcset");
+                Minz_Log::info("ImageCache: found image set $srcSet");
+                $result = preg_replace_callback("/(?:([^\s,]+)(\s*(?:\s+\d+[wx])(?:,\s*)?))/", $imgSetCallback, $srcSet);
                 $result = array_filter($result);
                 if ($result) {
                     $image->setAttribute("srcset", $result);
+                    Minz_Log::info("ImageCache: replaced with $result");
                 }
             }
         }
 
         $videos = $doc->getElementsByTagName("video");
         foreach ($videos as $video) {
+            Minz_Log::info("ImageCache: found video");
             foreach ($video->childNodes as $source) {
                 if ($source->nodeName != 'source') {
                     continue;
                 }
 
                 if ($video->hasAttribute("src")) {
-                    $result = $videoCallback($video->getAttribute("src"));
+                    $src = $video->getAttribute("src");
+                    Minz_Log::info("ImageCache: found video source $src");
+                    $result = $videoCallback($src);
                     if ($result) {
                         $video->setAttribute("src", $result);
+                        Minz_Log::info("ImageCache: replaced with $result");
                     }
                 }
             }
