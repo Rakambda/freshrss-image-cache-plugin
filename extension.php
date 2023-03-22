@@ -120,8 +120,7 @@ class ImageCacheExtension extends Minz_Extension
 
         $videos = $doc->getElementsByTagName("video");
         foreach ($videos as $video) {
-            $l = sizeof($video->childNodes);
-            Minz_Log::debug("ImageCache: found video $l");
+            Minz_Log::debug("ImageCache: found video");
             foreach ($video->childNodes as $source) {
                 if ($source->nodeName != 'source') {
                     continue;
