@@ -188,8 +188,7 @@ class ImageCacheExtension extends Minz_Extension
     {
         $doc = new DOMDocument();
         libxml_use_internal_errors(true); // prevent tag soup errors from showing
-        // https://stackoverflow.com/questions/11974008/alternative-to-mb-convert-encoding-with-html-entities-charset
-        $newContent = htmlspecialchars_decode(utf8_decode(htmlentities($content, ENT_COMPAT, 'utf-8', false)));
+        $newContent = mb_encode_numericentity($content, [0x80, 0x10FFFF, 0, ~0], 'UTF-8');
         $doc->loadHTML($newContent);
         return $doc;
     }
