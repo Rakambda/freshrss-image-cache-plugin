@@ -188,7 +188,7 @@ class ImageCacheExtension extends Minz_Extension
     {
         $doc = new DOMDocument();
         libxml_use_internal_errors(true); // prevent tag soup errors from showing
-        $newContent = htmlspecialchars($content", ENT_QUOTES, 'UTF-8');
+        $newContent = htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
         $doc->loadHTML($newContent);
         return $doc;
     }
