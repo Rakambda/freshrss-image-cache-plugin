@@ -50,7 +50,7 @@ class ImageCacheExtension extends Minz_Extension
         if (Minz_Request::isPost()) {
             FreshRSS_Context::$user_conf->image_cache_url = Minz_Request::param("image_cache_url", self::DEFAULT_CACHE_URL);
             FreshRSS_Context::$user_conf->image_cache_post_url = Minz_Request::param("image_cache_post_url", self::DEFAULT_CACHE_POST_URL);
-            FreshRSS_Context::$user_conf->image_cache_disabled_url = Minz_Request::param("cache_disabled_url", self::DEFAULT_CACHE_DISABLED_URL);
+            FreshRSS_Context::$user_conf->image_cache_disabled_url = Minz_Request::param("image_cache_disabled_url", self::DEFAULT_CACHE_DISABLED_URL);
             FreshRSS_Context::$user_conf->image_cache_access_token = Minz_Request::param("image_cache_access_token", self::DEFAULT_CACHE_ACCESS_TOKEN);
             FreshRSS_Context::$user_conf->image_cache_url_encode = Minz_Request::param("image_cache_url_encode", "");
             FreshRSS_Context::$user_conf->save();
