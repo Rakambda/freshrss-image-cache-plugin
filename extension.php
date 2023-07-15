@@ -5,6 +5,7 @@ class ImageCacheExtension extends Minz_Extension
     // Defaults
     const DEFAULT_CACHE_URL = "https://example.com/pic?url=";
     const DEFAULT_CACHE_POST_URL = "https://example.com/prepare";
+    const DEFAULT_CACHE_DISABLED_URL = "";
     const DEFAULT_CACHE_ACCESS_TOKEN = "";
     const DEFAULT_URL_ENCODE = "1";
 
@@ -22,6 +23,10 @@ class ImageCacheExtension extends Minz_Extension
         }
         if (is_null(FreshRSS_Context::$user_conf->image_cache_post_url)) {
             FreshRSS_Context::$user_conf->image_cache_post_url = self::DEFAULT_CACHE_POST_URL;
+            $save = true;
+        }
+        if (is_null(FreshRSS_Context::$user_conf->image_cache_disabled_url)) {
+            FreshRSS_Context::$user_conf->image_cache_disabled_url = self::DEFAULT_CACHE_DISABLED_URL;
             $save = true;
         }
         if (is_null(FreshRSS_Context::$user_conf->image_cache_post_url)) {
@@ -45,6 +50,7 @@ class ImageCacheExtension extends Minz_Extension
         if (Minz_Request::isPost()) {
             FreshRSS_Context::$user_conf->image_cache_url = Minz_Request::param("image_cache_url", self::DEFAULT_CACHE_URL);
             FreshRSS_Context::$user_conf->image_cache_post_url = Minz_Request::param("image_cache_post_url", self::DEFAULT_CACHE_POST_URL);
+            FreshRSS_Context::$user_conf->image_cache_disabled_url = Minz_Request::param("cache_disabled_url", self::DEFAULT_CACHE_DISABLED_URL);
             FreshRSS_Context::$user_conf->image_cache_access_token = Minz_Request::param("image_cache_access_token", self::DEFAULT_CACHE_ACCESS_TOKEN);
             FreshRSS_Context::$user_conf->image_cache_url_encode = Minz_Request::param("image_cache_url_encode", "");
             FreshRSS_Context::$user_conf->save();
@@ -99,6 +105,10 @@ class ImageCacheExtension extends Minz_Extension
         foreach ($images as $image) {
             if ($image->hasAttribute("src")) {
                 $src = $image->getAttribute("src");
+                if ($this->isDisabled($src)) {
+                    continue;
+                }
+
                 Minz_Log::debug("ImageCache: found image $src");
                 $result = $imgCallback($src);
                 if ($result) {
@@ -191,5 +201,21 @@ class ImageCacheExtension extends Minz_Extension
         $newContent = mb_encode_numericentity($content, [0x80, 0x10FFFF, 0, ~0], 'UTF-8');
         $doc->loadHTML($newContent);
         return $doc;
+    }
+
+    private function isDisabled(string $src): bool
+    {
+        $disabledStr = FreshRSS_Context::$user_conf->image_cache_disabled_url;
+        if (!$disabledStr) {
+            return false;
+        }
+
+        $disabledEntries = explode(',', $disabledStr);
+        foreach ($disabledEntries as $disabledEntry) {
+            if (str_contains($src, $disabledEntry)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
