@@ -26,21 +26,98 @@ class CacheHit
 
 class Cache
 {
-    function join_paths(...$paths): string
+    private array $extensions;
+
+    public function __construct()
+    {
+        $this->extensions = [
+            'jpg' => 'jpg',
+            'jpeg' => 'jpg',
+            'png' => 'png',
+            'gif' => 'gif',
+            'svg' => 'svg',
+            'svg+xml' => 'svg',
+            'webp' => 'webp',
+            'avif' => 'avif',
+            'tiff' => 'tiff',
+
+            'mp4' => 'mp4',
+            'webm' => 'webm',
+
+            'aac' => 'aac',
+            'mp3' => 'mp3',
+            'mpeg' => 'mp3',
+        ];
+    }
+
+    private function join_paths(...$paths): string
     {
         return preg_replace('~[/\\\\]+~', DIRECTORY_SEPARATOR, implode(DIRECTORY_SEPARATOR, $paths));
     }
 
-    function get_filename($url): string
+    private function get_filename($url): string
     {
         $parent_folder = $this->join_paths(CACHE_PLACE_PATH, 'piccache');
         if (!file_exists($parent_folder)) {
             mkdir($this->join_paths($parent_folder));
         }
 
-        $store_filename = explode('?', pathinfo($url, PATHINFO_BASENAME))[0];
         $url_hash = hash('sha256', $url);
+        $store_filename = explode('?', pathinfo($url, PATHINFO_BASENAME))[0];
+        $store_extension = pathinfo($store_filename, PATHINFO_EXTENSION);
 
+        if (array_key_exists($store_extension, $this->extensions)) {
+            $store_extension = $this->map_extension($store_extension);
+        } else {
+            $content_type = $this->extract_content_type($url);
+            $new_extension = $this->get_extension_from_content_type($content_type);
+            if ($new_extension) {
+                $store_extension = $new_extension;
+            }
+        }
+
+        if (!str_ends_with(".${store_filename}", $store_extension)) {
+            $store_filename = "${store_filename}.${store_extension}";
+        }
+
+        return $this->join_paths($parent_folder, "$url_hash-$store_filename");
+    }
+
+    private function get_extension_from_content_type(?string $content_type): ?string
+    {
+        if (!$content_type) {
+            return null;
+        }
+
+        $parsed_content_type = $this->parse_content_header_value($content_type);
+        if (!$parsed_content_type || !isset($parsed_content_type["value"])) {
+            return null;
+        }
+
+        $content_type_value = $parsed_content_type["value"];
+        if (str_starts_with($content_type_value, "image/")
+            || str_starts_with($content_type_value, "video/")
+            || str_starts_with($content_type_value, "audio/")
+        ) {
+
+            $parts = explode('/', $content_type_value, 2);
+            $extension = $parts[1];
+            return $this->map_extension($extension);
+        }
+
+        return null;
+    }
+
+    private function map_extension(?string $extension): ?string
+    {
+        if (!$extension || !array_key_exists($extension, $this->extensions)) {
+            return $extension;
+        }
+        return $this->extensions[$extension];
+    }
+
+    private function extract_content_type(string $url): ?string
+    {
         $raw_content_type = null;
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
@@ -56,7 +133,7 @@ class Cache
                     return $len;
                 }
 
-                if (trim($header[0]) == "Content-Type") {
+                if (strtolower(trim($header[0])) == "content-type") {
                     $raw_content_type = trim($header[1]);
                 }
                 return $len;
@@ -64,41 +141,13 @@ class Cache
         );
         curl_exec($ch);
         curl_close($ch);
-
-        $store_filename = $this->append_type($store_filename, $raw_content_type);
-        return $this->join_paths($parent_folder, "$url_hash-$store_filename");
+        return $raw_content_type;
     }
 
-    private function append_type(string $filename, string $content_type): string
-    {
-        if (!$content_type) {
-            return $filename;
-        }
-
-        $parsed_content_type = $this->parse_content_header_value($content_type);
-        if (!$parsed_content_type || !isset($parsed_content_type["value"])) {
-            return $filename;
-        }
-
-        $content_type_value = $parsed_content_type["value"];
-        if (str_starts_with($content_type_value, "image/")
-            || str_starts_with($content_type_value, "video/")) {
-
-            $parts = explode('/', $content_type_value, 2);
-            $extension = $parts[1];
-
-            if (!str_starts_with(`.${filename}`, $extension)) {
-                $filename = `${filename}.${extension}`;
-            }
-        }
-
-        return $filename;
-    }
-
-    function parse_content_header_value(string $value): array
+    private function parse_content_header_value(string $value): array
     {
         $retVal = array();
-        $value_pattern = '/^([^;]+)\s*(.+)\s*?$/';
+        $value_pattern = '/^([^;]+)\s*(.*)\s*?$/';
         $param_pattern = '/([a-z]+)=(([^\"][^;]+)|(\"(\\\"|[^"])+\"))/';
         $vm = array();
 
@@ -122,11 +171,11 @@ class Cache
         return $retVal;
     }
 
-    function store_in_cache(string $url): bool
+    public function store_in_cache(string $url): string
     {
         $file_name = $this->get_filename($url);
         if (file_exists($file_name)) {
-            return true;
+            return $file_name;
         }
 
         $ch = curl_init();
@@ -146,10 +195,10 @@ class Cache
 
         file_put_contents($file_name, $content);
         chmod($file_name, 0775);
-        return true;
+        return $file_name;
     }
 
-    function get_cached_data(string $url): CacheHit
+    public function get_cached_data(string $url): CacheHit
     {
         $this->store_in_cache($url);
         $file_name = $this->get_filename($url);
@@ -181,9 +230,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         end_wrong_query();
     }
 
-    $cache->store_in_cache($post_data['url']);
+    $filename = $cache->store_in_cache($post_data['url']);
     header('Content-Type: application/json; charset=utf-8');
-    echo '{"status": "OK"}' . PHP_EOL;
+    echo "{\"status\": \"OK\", \"filename\": \"${filename}\"}" . PHP_EOL;
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $url = $_GET['url'];
