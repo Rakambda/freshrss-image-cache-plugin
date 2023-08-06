@@ -40,7 +40,86 @@ class Cache
 
         $store_filename = explode('?', pathinfo($url, PATHINFO_BASENAME))[0];
         $url_hash = hash('sha256', $url);
+
+        $raw_content_type = null;
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_NOBODY, true);
+        curl_setopt($ch, CURLOPT_HEADER, true);
+        curl_setopt($ch, CURLOPT_HEADERFUNCTION,
+            function ($curl, $header) use (&$raw_content_type) {
+                $len = strlen($header);
+
+                $header = explode(':', $header, 2);
+                if (count($header) < 2) { // ignore invalid headers
+                    return $len;
+                }
+
+                if (trim($header[0]) == "Content-Type") {
+                    $raw_content_type = trim($header[1]);
+                }
+                return $len;
+            }
+        );
+        curl_exec($ch);
+        curl_close($ch);
+
+        $store_filename = $this->append_type($store_filename, $raw_content_type);
         return $this->join_paths($parent_folder, "$url_hash-$store_filename");
+    }
+
+    private function append_type(string $filename, string $content_type): string
+    {
+        if (!$content_type) {
+            return $filename;
+        }
+
+        $parsed_content_type = $this->parse_content_header_value($content_type);
+        if (!$parsed_content_type || !isset($parsed_content_type["value"])) {
+            return $filename;
+        }
+
+        $content_type_value = $parsed_content_type["value"];
+        if (str_starts_with($content_type_value, "image/")
+            || str_starts_with($content_type_value, "video/")) {
+
+            $parts = explode('/', $content_type_value, 2);
+            $extension = $parts[1];
+
+            if (!str_starts_with(`.${filename}`, $extension)) {
+                $filename = `${filename}.${extension}`;
+            }
+        }
+
+        return $filename;
+    }
+
+    function parse_content_header_value(string $value): array
+    {
+        $retVal = array();
+        $value_pattern = '/^([^;]+)\s*(.+)\s*?$/';
+        $param_pattern = '/([a-z]+)=(([^\"][^;]+)|(\"(\\\"|[^"])+\"))/';
+        $vm = array();
+
+        if (preg_match($value_pattern, $value, $vm)) {
+            $retVal['value'] = $vm[1];
+            if (count($vm) > 1) {
+                $pm = array();
+                if (preg_match_all($param_pattern, $vm[2], $pm)) {
+                    $pcount = count($pm[0]);
+                    for ($i = 0; $i < $pcount; $i++) {
+                        $value = $pm[2][$i];
+                        if (str_starts_with($value, '"')) {
+                            $value = stripcslashes(substr($value, 1, mb_strlen($value) - 2));
+                        }
+                        $retVal['params'][$pm[1][$i]] = $value;
+                    }
+                }
+            }
+        }
+
+        return $retVal;
     }
 
     function store_in_cache(string $url): bool
@@ -50,7 +129,17 @@ class Cache
             return true;
         }
 
-        $content = file_get_contents($url);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_AUTOREFERER, TRUE);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 3);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+
+        $content = curl_exec($ch);
+        curl_close($ch);
+
         if (!$content) {
             return false;
         }
