@@ -24,6 +24,20 @@ class CacheHit
     }
 }
 
+class FetchHit
+{
+    public $cached;
+    public $fetched;
+    public $filename;
+
+    public function __construct(bool $cached = false, bool $fetched = false, ?string $filename = null)
+    {
+        $this->filename = $filename;
+        $this->fetched = $fetched;
+        $this->cached = $cached;
+    }
+}
+
 class Cache
 {
     private array $extensions;
@@ -171,31 +185,21 @@ class Cache
         return $retVal;
     }
 
-    public function store_in_cache(string $url): string
+    public function store_in_cache(string $url): FetchHit
     {
         $file_name = $this->get_filename($url);
         if (file_exists($file_name)) {
-            return $file_name;
+            return new FetchHit(true, false, $file_name);
         }
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_AUTOREFERER, TRUE);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, TRUE);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 3);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
-
-        $content = curl_exec($ch);
-        curl_close($ch);
-
+        $content = file_get_contents($url);
         if (!$content) {
-            return false;
+            return new FetchHit(false, false, null);
         }
 
         file_put_contents($file_name, $content);
-        chmod($file_name, 0775);
-        return $file_name;
+        chmod($file_name, 0777);
+        return new FetchHit(true, true, $file_name);
     }
 
     public function get_cached_data(string $url): CacheHit
@@ -230,9 +234,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         end_wrong_query();
     }
 
-    $filename = $cache->store_in_cache($post_data['url']);
+    $fetchHit = $cache->store_in_cache($post_data['url']);
     header('Content-Type: application/json; charset=utf-8');
-    echo "{\"status\": \"OK\", \"filename\": \"${filename}\"}" . PHP_EOL;
+    $filename = $fetchHit->filename;
+    $cached = $fetchHit->cached;
+    $fetched = $fetchHit->fetched;
+    echo "{\"status\": \"OK\", \"filename\": \"${filename}\", \"cached\": \"${$cached}\", \"fetched\": \"${fetched}\"}" . PHP_EOL;
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $url = $_GET['url'];
@@ -247,6 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     } else {
         header('X-Piccache-Status: HIT');
+        header("X-Piccache-File: $cache_hit->filename");
         header("Content-Type: $cache_hit->content_type");
         header("Content-Length: $cache_hit->length");
         fpassthru(fopen($cache_hit->filename, 'rb'));
