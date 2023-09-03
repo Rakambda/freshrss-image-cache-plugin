@@ -140,6 +140,11 @@ class ImageCacheExtension extends Minz_Extension
         $videos = $doc->getElementsByTagName("video");
         foreach ($videos as $video) {
             Minz_Log::debug("ImageCache: found video");
+
+            if (!$video->hasAttribute("controls")) {
+                $video->setAttribute('controls', 'true');
+            }
+
             foreach ($video->childNodes as $source) {
                 if ($source->nodeName != 'source') {
                     continue;
@@ -170,6 +175,7 @@ class ImageCacheExtension extends Minz_Extension
                             $source->setAttribute('src', $result);
 
                             $video = $doc->createElement('video');
+                            $video->setAttribute('controls', 'true');
                             $video->appendChild($source);
 
                             $this->append_after($link, $video);
