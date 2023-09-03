@@ -1,12 +1,35 @@
 <?php
 
 const CACHE_PLACE_PATH = "/cache";
+const CONFIG_PATH = "/cache/config.json";
 
 # define("CACHE_PLACE_PATH", sys_get_temp_dir());
 # Also possible:
 # define("CACHE_PLACE_PATH", "C:\\your\\Directory");
 # define("CACHE_PLACE_PATH", "/var/www/html/directory");
 # Remember to set correct privileges allowing PHP access.
+
+class Config
+{
+    private static $config;
+
+    public static function get_config(): array
+    {
+        if (!Config::$config) {
+            $json_content = file_get_contents(CONFIG_PATH);
+            Config::$config = json_decode($json_content, associative: true);
+        }
+        return Config::$config;
+    }
+
+    public static function get_redgifs_bearer(): ?string
+    {
+        $config = self::get_config();
+        if (isset($config['redgifs_bearer'])) {
+            return $config['redgifs_bearer'];
+        }
+    }
+}
 
 class CacheHit
 {
@@ -185,6 +208,28 @@ class Cache
         return $retVal;
     }
 
+    private function get_link_content(string $url): string|false
+    {
+        if (str_starts_with($url, 'https://www.redgifs.com/')) {
+            $parsed_url = parse_url($url);
+            $path = $parsed_url['path'];
+            $gif_id = basename($path);
+
+            $bearer = Config::get_redgifs_bearer();
+            $context = stream_context_create(["http" => ["header" => "Authorization: Bearer $bearer"]]);
+            $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id?views=yes&users=yes&niches=yes", false, $context);
+
+            if (!$api_response) {
+                return false;
+            }
+
+            $json_response = json_decode($api_response, associative: true);
+            $url = $json_response['gif']['urls']['hd'];
+        }
+
+        return file_get_contents($url);
+    }
+
     public function store_in_cache(string $url): FetchHit
     {
         $file_name = $this->get_filename($url);
@@ -192,7 +237,7 @@ class Cache
             return new FetchHit(true, false, $file_name);
         }
 
-        $content = file_get_contents($url);
+        $content = $this->get_link_content($url);
         if (!$content) {
             return new FetchHit(false, false, null);
         }

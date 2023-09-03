@@ -147,6 +147,27 @@ class ImageCacheExtension extends Minz_Extension
                 }
             }
         }
+
+        $links = $doc->getElementsByTagName("a");
+        foreach ($links as $link) {
+            if ($link->hasAttribute("href")) {
+                $href = $link->getAttribute("href");
+                if ($this->isRedgifs($href)) {
+                    Minz_Log::debug("ImageCache: found Redgifs video $href");
+                    $result = $videoCallback($href);
+                    if ($result) {
+                        try {
+                            $img = $doc->createElement('video');
+                            $img->setAttribute('src', $result);
+                            $link->appendChild($img);
+                            Minz_Log::debug("ImageCache: added Redgif video with $result");
+                        } catch (Exception $e) {
+                            Minz_Log::error("Failed to create new DOM element $e");
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private function getCachedSetUrl(array $matches): string
@@ -217,5 +238,10 @@ class ImageCacheExtension extends Minz_Extension
             }
         }
         return false;
+    }
+
+    private function isRedgifs(string $src): bool
+    {
+        return str_contains($src, 'https://www.redgifs.com/');
     }
 }
