@@ -99,6 +99,15 @@ class ImageCacheExtension extends Minz_Extension
         );
     }
 
+    private function append_after(DOMNode $node, DOMNode $add): void
+    {
+        try {
+            $node->parentNode->insertBefore($add, $node->nextSibling);
+        } catch (\Exception $e) {
+            $node->parentNode->appendChild($add);
+        }
+    }
+
     private function handleImages(DOMDocument $doc, callable $imgCallback, callable $imgSetCallback, callable $videoCallback)
     {
         $images = $doc->getElementsByTagName("img");
@@ -157,9 +166,13 @@ class ImageCacheExtension extends Minz_Extension
                     $result = $videoCallback($href);
                     if ($result) {
                         try {
-                            $img = $doc->createElement('video');
-                            $img->setAttribute('src', $result);
-                            $link->appendChild($img);
+                            $source = $doc->createElement('source');
+                            $source->setAttribute('src', $result);
+
+                            $video = $doc->createElement('video');
+                            $video->appendChild($source);
+
+                            $this->append_after($link, $video);
                             Minz_Log::debug("ImageCache: added Redgif video with $result");
                         } catch (Exception $e) {
                             Minz_Log::error("Failed to create new DOM element $e");
