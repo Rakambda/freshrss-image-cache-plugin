@@ -29,6 +29,14 @@ class Config
             return $config['redgifs_bearer'];
         }
     }
+
+    public static function get_user_agent(): ?string
+    {
+        $config = self::get_config();
+        if (isset($config['user_agent'])) {
+            return $config['user_agent'];
+        }
+    }
 }
 
 class CacheHit
@@ -52,12 +60,14 @@ class FetchHit
     public $cached;
     public $fetched;
     public $filename;
+    public $comment;
 
-    public function __construct(bool $cached = false, bool $fetched = false, ?string $filename = null)
+    public function __construct(bool $cached = false, bool $fetched = false, ?string $filename = null, ?string $comment = null)
     {
         $this->filename = $filename;
         $this->fetched = $fetched;
         $this->cached = $cached;
+        $this->comment = $comment;
     }
 }
 
@@ -210,15 +220,19 @@ class Cache
 
     private function get_link_content(string $url): string|false
     {
+        $user_agent = Config::get_user_agent();
+
         if (str_starts_with($url, 'https://www.redgifs.com/')) {
             $parsed_url = parse_url($url);
             $path = $parsed_url['path'];
             $gif_id = basename($path);
 
             $bearer = Config::get_redgifs_bearer();
-            $context = stream_context_create(["http" => ["header" => "Authorization: Bearer $bearer"]]);
-            $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id?views=yes&users=yes&niches=yes", false, $context);
 
+            $context = stream_context_create(["http" => [
+                'header' => "Authorization: Bearer $bearer\r\nUser-Agent: $user_agent\r\n"
+            ]]);
+            $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id?views=yes&users=yes&niches=yes", false, $context);
             if (!$api_response) {
                 return false;
             }
@@ -227,24 +241,27 @@ class Cache
             $url = $json_response['gif']['urls']['hd'];
         }
 
-        return file_get_contents($url);
+        $context = stream_context_create(["http" => [
+            'header' => "User-Agent: $user_agent\r\n",
+        ]]);
+        return file_get_contents($url, false, $context);
     }
 
     public function store_in_cache(string $url): FetchHit
     {
         $file_name = $this->get_filename($url);
         if (file_exists($file_name)) {
-            return new FetchHit(true, false, $file_name);
+            return new FetchHit(true, false, $file_name, 'File already exists in cache');
         }
 
         $content = $this->get_link_content($url);
         if (!$content) {
-            return new FetchHit(false, false, null);
+            return new FetchHit(false, false, null, 'Could not get media content');
         }
 
         file_put_contents($file_name, $content);
         chmod($file_name, 0777);
-        return new FetchHit(true, true, $file_name);
+        return new FetchHit(true, true, $file_name, 'Added to cache');
     }
 
     public function get_cached_data(string $url): CacheHit
@@ -281,10 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $fetchHit = $cache->store_in_cache($post_data['url']);
     header('Content-Type: application/json; charset=utf-8');
-    $filename = $fetchHit->filename;
-    $cached = $fetchHit->cached;
-    $fetched = $fetchHit->fetched;
-    echo "{\"status\": \"OK\", \"filename\": \"${filename}\", \"cached\": \"${$cached}\", \"fetched\": \"${fetched}\"}" . PHP_EOL;
+    echo json_encode($fetchHit) . PHP_EOL;
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $url = $_GET['url'];
@@ -309,4 +323,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     http_response_code(405);
 }
 exit();
-?>
