@@ -1,5 +1,8 @@
 <?php
 
+//error_reporting(E_ALL);
+//ini_set('display_errors', 'On');
+
 const CACHE_PLACE_PATH = "/cache";
 const CONFIG_PATH = "/cache/config.json";
 
