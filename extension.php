@@ -176,6 +176,7 @@ class ImageCacheExtension extends Minz_Extension
 
                             $video = $doc->createElement('video');
                             $video->setAttribute('controls', 'true');
+                            $video->setAttribute('style', 'max-height: 99vh;');
                             $video->appendChild($source);
 
                             $this->append_after($link, $video);
