@@ -225,8 +225,8 @@ class Cache
     {
         $user_agent = Config::get_user_agent();
 
-        if (str_starts_with($url, 'https://www.redgifs.com/')) {
-            $parsed_url = parse_url($url);
+        $parsed_url = parse_url($url);
+        if (str_contains($parsed_url['host'], 'redgifs.com')) {
             $path = $parsed_url['path'];
             $gif_id = basename($path);
 
