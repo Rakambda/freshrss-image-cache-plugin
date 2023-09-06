@@ -322,6 +322,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         fpassthru(fopen($cache_hit->filename, 'rb'));
     }
 
+} elseif ($_SERVER['REQUEST_METHOD'] === 'HEAD') {
+    $url = $_GET['url'];
+    if (!$url) {
+        end_wrong_query();
+    }
+
+    $cache_hit = $cache->get_cached_data($url);
+    if (!$cache_hit->fetched) {
+        header('X-Piccache-Status: MISS', 404);
+        exit();
+    } else {
+        header('X-Piccache-Status: HIT');
+        header("X-Piccache-File: $cache_hit->filename");
+        header("Content-Type: $cache_hit->content_type");
+        header("Content-Length: $cache_hit->length", 204);
+    }
+
 } else {
     http_response_code(405);
 }
