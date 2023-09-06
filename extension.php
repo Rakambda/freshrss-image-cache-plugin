@@ -261,6 +261,7 @@ class ImageCacheExtension extends Minz_Extension
 
     private function isRedgifs(string $src): bool
     {
-        return str_contains($src, 'https://www.redgifs.com/');
+        $parsed_url = parse_url($src);
+        return str_contains($parsed_url['host'], 'redgifs.com');
     }
 }
