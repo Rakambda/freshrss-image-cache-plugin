@@ -63,13 +63,15 @@ class FetchHit
     public $cached;
     public $fetched;
     public $filename;
+    public $headers;
     public $comment;
 
-    public function __construct(bool $cached = false, bool $fetched = false, ?string $filename = null, ?string $comment = null)
+    public function __construct(bool $cached = false, bool $fetched = false, ?string $filename = null, ?array $headers = [], ?string $comment = null)
     {
         $this->filename = $filename;
         $this->fetched = $fetched;
         $this->cached = $cached;
+        $this->headers = $headers;
         $this->comment = $comment;
     }
 }
@@ -235,7 +237,7 @@ class Cache
         return $retVal;
     }
 
-    private function get_link_content(string $url): string|false
+    private function get_link_content(string $url): array
     {
         $user_agent = Config::get_user_agent();
 
@@ -251,7 +253,7 @@ class Cache
             ]]);
             $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id?views=yes&users=yes&niches=yes", false, $context);
             if (!$api_response) {
-                return false;
+                return [false, []];
             }
 
             $json_response = json_decode($api_response, associative: true);
@@ -261,7 +263,9 @@ class Cache
         $context = stream_context_create(["http" => [
             'header' => "User-Agent: $user_agent\r\n",
         ]]);
-        return file_get_contents($url, false, $context);
+        $content = file_get_contents($url, false, $context);
+        $headers = $http_response_header;
+        return [$content, $headers];
     }
 
     private function isRedgifs(string $url)
@@ -274,21 +278,26 @@ class Cache
     {
         $file_name = $this->get_filename($url);
         if (file_exists($file_name)) {
-            return new FetchHit(true, false, $file_name, 'File already exists in cache');
+            return new FetchHit(true, false, $file_name, comment: 'File already exists in cache');
         }
 
-        $content = $this->get_link_content($url);
+        [$content, $headers] = $this->get_link_content($url);
         if (!$content) {
-            return new FetchHit(false, false, null, 'Could not get media content');
+            return new FetchHit(false, false, $file_name, $headers, 'Could not get media content');
+        }
+        if ($headers and isset($headers['Content-Type'])) {
+            if ($headers['Content-Type'] === 'text/html') {
+                return new FetchHit(false, true, $file_name, $headers, 'Response has HTML content type');
+            }
         }
         if (str_starts_with($content, "<!doctype html>")) {
-            return new FetchHit(false, false, null, 'Response was HTML');
+            return new FetchHit(false, true, $file_name, $headers, 'Response was HTML');
         }
 
         umask(0);
         file_put_contents($file_name, $content);
         chmod($file_name, 0775);
-        return new FetchHit(true, true, $file_name, 'Added to cache');
+        return new FetchHit(true, true, $file_name, $headers, 'Added to cache');
     }
 
     public function get_cached_data(string $url): CacheHit
