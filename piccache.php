@@ -267,6 +267,7 @@ class Cache
         ]]);
         $content = file_get_contents($url, false, $context);
         $headers = $http_response_header;
+        print_r($headers);
         return [$content, $headers];
     }
 
