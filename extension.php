@@ -121,6 +121,7 @@ class ImageCacheExtension extends Minz_Extension
                 Minz_Log::debug("ImageCache: found image $src");
                 $result = $imgCallback($src);
                 if ($result) {
+                    $image->setAttribute("previous-src", $src);
                     $image->setAttribute("src", $result);
                     Minz_Log::debug("ImageCache: replaced with $result");
                 }
@@ -131,6 +132,7 @@ class ImageCacheExtension extends Minz_Extension
                 $result = preg_replace_callback("/(?:([^\s,]+)(\s*(?:\s+\d+[wx])(?:,\s*)?))/", $imgSetCallback, $srcSet);
                 $result = array_filter($result);
                 if ($result) {
+                    $image->setAttribute("previous-srcset", $srcSet);
                     $image->setAttribute("srcset", $result);
                     Minz_Log::debug("ImageCache: replaced with $result");
                 }
@@ -155,6 +157,7 @@ class ImageCacheExtension extends Minz_Extension
                     Minz_Log::debug("ImageCache: found video source $src");
                     $result = $videoCallback($src);
                     if ($result) {
+                        $source->setAttribute("previous-src", $src);
                         $source->setAttribute("src", $result);
                         Minz_Log::debug("ImageCache: replaced with $result");
                     }
