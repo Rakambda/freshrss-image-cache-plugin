@@ -261,9 +261,13 @@ class Cache
         if (!$content) {
             return new FetchHit(false, false, null, 'Could not get media content');
         }
+        if(str_starts_with($content, "<!doctype html>")){
+            return new FetchHit(false, false, null, 'Response was HTML');
+        }
 
+        umask(0);
         file_put_contents($file_name, $content);
-        chmod($file_name, 0777);
+        chmod($file_name, 0775);
         return new FetchHit(true, true, $file_name, 'Added to cache');
     }
 
