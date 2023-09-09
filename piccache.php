@@ -135,7 +135,9 @@ class Cache
         $parsed_url = parse_url($url);
         $domain_folder = $this->join_paths($parent_folder, $parsed_url['host']);
         if (!file_exists($domain_folder)) {
-            mkdir($this->join_paths($parent_folder, $parsed_url['host']), recursive: true);
+            umask(0);
+            mkdir($domain_folder, recursive: true);
+            chmod($domain_folder, 0775);
         }
 
         $url_hash = hash('sha256', $url);
