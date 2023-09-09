@@ -109,23 +109,22 @@ class Cache
 
     private function get_filename_extension(string $url, string $store_filename): string
     {
-        $store_extension = pathinfo($store_filename, PATHINFO_EXTENSION);
-
-        if (array_key_exists($store_extension, $this->extensions)) {
-            return $this->map_extension($store_extension);
+        $content_type = $this->extract_content_type($url);
+        $content_type_extension = $this->get_extension_from_content_type($content_type);
+        if ($content_type_extension) {
+            return $content_type_extension;
         }
 
-        $content_type = $this->extract_content_type($url);
-        $new_extension = $this->get_extension_from_content_type($content_type);
-        if ($new_extension) {
-            return $new_extension;
+        $path_extension = pathinfo($store_filename, PATHINFO_EXTENSION);
+        if (array_key_exists($path_extension, $this->extensions)) {
+            return $this->map_extension($path_extension);
         }
 
         if ($this->isRedgifs($url)) {
             return $this->map_extension('mp4');
         }
 
-        return $store_extension;
+        return $path_extension;
     }
 
     private function get_filename($url): string
