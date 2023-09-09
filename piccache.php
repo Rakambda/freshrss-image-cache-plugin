@@ -133,7 +133,9 @@ class Cache
         $parent_folder = $this->join_paths(CACHE_PLACE_PATH, 'piccache');
 
         $parsed_url = parse_url($url);
-        $domain_folder = $this->join_paths($parent_folder, $parsed_url['host']);
+        $parts = explode('.', $parsed_url['host']);
+        $domain = implode('.', array_slice($parts, count($parts) - 2));
+        $domain_folder = $this->join_paths($parent_folder, $domain);
         if (!file_exists($domain_folder)) {
             umask(0);
             mkdir($domain_folder, recursive: true);
