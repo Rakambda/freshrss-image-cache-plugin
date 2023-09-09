@@ -105,32 +105,46 @@ class Cache
         return preg_replace('~[/\\\\]+~', DIRECTORY_SEPARATOR, implode(DIRECTORY_SEPARATOR, $paths));
     }
 
+    private function get_filename_extension(string $url, string $store_filename): string
+    {
+        $store_extension = pathinfo($store_filename, PATHINFO_EXTENSION);
+
+        if (array_key_exists($store_extension, $this->extensions)) {
+            return $this->map_extension($store_extension);
+        }
+
+        $content_type = $this->extract_content_type($url);
+        $new_extension = $this->get_extension_from_content_type($content_type);
+        if ($new_extension) {
+            return $new_extension;
+        }
+
+        if ($this->isRedgifs($url)) {
+            return $this->map_extension('mp4');
+        }
+
+        return $store_extension;
+    }
+
     private function get_filename($url): string
     {
         $parent_folder = $this->join_paths(CACHE_PLACE_PATH, 'piccache');
-        if (!file_exists($parent_folder)) {
-            mkdir($this->join_paths($parent_folder));
+
+        $parsed_url = parse_url($url);
+        $domain_folder = $this->join_paths($parent_folder, $parsed_url['host']);
+        if (!file_exists($domain_folder)) {
+            mkdir($this->join_paths($parent_folder, $parsed_url['host']), recursive: true);
         }
 
         $url_hash = hash('sha256', $url);
         $store_filename = explode('?', pathinfo($url, PATHINFO_BASENAME))[0];
-        $store_extension = pathinfo($store_filename, PATHINFO_EXTENSION);
-
-        if (array_key_exists($store_extension, $this->extensions)) {
-            $store_extension = $this->map_extension($store_extension);
-        } else {
-            $content_type = $this->extract_content_type($url);
-            $new_extension = $this->get_extension_from_content_type($content_type);
-            if ($new_extension) {
-                $store_extension = $new_extension;
-            }
-        }
+        $store_extension = $this->get_filename_extension($url, $store_filename);
 
         if (!str_ends_with(".${store_filename}", $store_extension)) {
             $store_filename = "${store_filename}.${store_extension}";
         }
 
-        return $this->join_paths($parent_folder, "$url_hash-$store_filename");
+        return $this->join_paths($domain_folder, "$url_hash-$store_filename");
     }
 
     private function get_extension_from_content_type(?string $content_type): ?string
@@ -225,8 +239,8 @@ class Cache
     {
         $user_agent = Config::get_user_agent();
 
-        $parsed_url = parse_url($url);
-        if (str_contains($parsed_url['host'], 'redgifs.com')) {
+        if ($this->isRedgifs($url)) {
+            $parsed_url = parse_url($url);
             $path = $parsed_url['path'];
             $gif_id = basename($path);
 
@@ -250,6 +264,12 @@ class Cache
         return file_get_contents($url, false, $context);
     }
 
+    private function isRedgifs(string $url)
+    {
+        $parsed_url = parse_url($url);
+        return str_contains($parsed_url['host'], 'redgifs.com');
+    }
+
     public function store_in_cache(string $url): FetchHit
     {
         $file_name = $this->get_filename($url);
@@ -261,7 +281,7 @@ class Cache
         if (!$content) {
             return new FetchHit(false, false, null, 'Could not get media content');
         }
-        if(str_starts_with($content, "<!doctype html>")){
+        if (str_starts_with($content, "<!doctype html>")) {
             return new FetchHit(false, false, null, 'Response was HTML');
         }
 
