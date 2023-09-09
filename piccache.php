@@ -267,7 +267,6 @@ class Cache
         ]]);
         $content = file_get_contents($url, false, $context);
         $headers = $http_response_header;
-        print_r($headers);
         return [$content, $headers];
     }
 
@@ -289,7 +288,7 @@ class Cache
             return new FetchHit(false, false, $file_name, $headers, 'Could not get media content');
         }
         if ($headers and isset($headers['Content-Type'])) {
-            if ($headers['Content-Type'] === 'text/html') {
+            if (str_contains($headers['Content-Type'], 'text/html')) {
                 return new FetchHit(false, true, $file_name, $headers, 'Response has HTML content type');
             }
         }
