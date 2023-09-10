@@ -31,6 +31,7 @@ class Config
         if (isset($config['redgifs_bearer'])) {
             return $config['redgifs_bearer'];
         }
+        return null;
     }
 
     public static function get_user_agent(): ?string
@@ -39,6 +40,16 @@ class Config
         if (isset($config['user_agent'])) {
             return $config['user_agent'];
         }
+        return null;
+    }
+
+    public static function get_imgur_client_id(): ?string
+    {
+        $config = self::get_config();
+        if (isset($config['imgur_client_id'])) {
+            return $config['imgur_client_id'];
+        }
+        return null;
     }
 }
 
@@ -262,6 +273,27 @@ class Cache
             $json_response = json_decode($api_response, associative: true);
             $url = $json_response['gif']['urls']['hd'];
         }
+        if ($this->isImgur($url)) {
+            $parsed_url = parse_url($url);
+            $path = $parsed_url['path'];
+            $post_id = implode(explode('.', basename($path), -1));
+
+            $bearer = Config::get_imgur_client_id();
+
+            $context = stream_context_create(["http" => [
+                'header' => "Authorization: Client-ID $bearer\r\nUser-Agent: $user_agent\r\n"
+            ]]);
+            $api_response = file_get_contents("https://api.imgur.com/3/image/$post_id", false, $context);
+            if (!$api_response) {
+                return [false, []];
+            }
+
+            $json_response = json_decode($api_response, associative: true);
+            if (!$json_response["success"]) {
+                return [false, []];
+            }
+            $url = $json_response['data']['link'];
+        }
 
         $context = stream_context_create(["http" => [
             'header' => "User-Agent: $user_agent\r\n",
@@ -275,6 +307,12 @@ class Cache
     {
         $parsed_url = parse_url($url);
         return str_contains($parsed_url['host'], 'redgifs.com');
+    }
+
+    private function isImgur(string $url)
+    {
+        $parsed_url = parse_url($url);
+        return str_contains($parsed_url['host'], 'imgur.com');
     }
 
     public function store_in_cache(string $url): FetchHit
