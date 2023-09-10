@@ -195,7 +195,7 @@ class ImageCacheExtension extends Minz_Extension
                     if ($result) {
                         try {
                             $image = $doc->createElement('img');
-                            $image->setAttribute('src', 'true');
+                            $image->setAttribute('src', $result);
 
                             $this->append_after($link, $image);
                             Minz_Log::debug("ImageCache: added Imgur image with $result");
