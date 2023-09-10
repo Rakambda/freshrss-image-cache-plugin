@@ -189,6 +189,21 @@ class ImageCacheExtension extends Minz_Extension
                         }
                     }
                 }
+                if ($this->isImgur($href)) {
+                    Minz_Log::debug("ImageCache: found Imgur image $href");
+                    $result = $imgCallback($href);
+                    if ($result) {
+                        try {
+                            $image = $doc->createElement('img');
+                            $image->setAttribute('src', 'true');
+
+                            $this->append_after($link, $image);
+                            Minz_Log::debug("ImageCache: added Imgur image with $result");
+                        } catch (Exception $e) {
+                            Minz_Log::error("Failed to create new DOM element $e");
+                        }
+                    }
+                }
             }
         }
     }
@@ -281,5 +296,11 @@ class ImageCacheExtension extends Minz_Extension
     {
         $parsed_url = parse_url($src);
         return str_contains($parsed_url['host'], 'redgifs.com');
+    }
+
+    private function isImgur(string $src): bool
+    {
+        $parsed_url = parse_url($src);
+        return str_contains($parsed_url['host'], 'imgur.com');
     }
 }
