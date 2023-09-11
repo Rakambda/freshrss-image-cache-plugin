@@ -339,7 +339,7 @@ class Cache
                 return new FetchHit(false, true, $file_name, $headers, 'Response has HTML content type');
             }
         }
-        if (str_starts_with($content, "<!doctype html>")) {
+        if (preg_match("#^\s*<!doctype html>.*#i", $content)) {
             return new FetchHit(false, true, $file_name, $headers, 'Response was HTML');
         }
 
