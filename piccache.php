@@ -5,6 +5,8 @@
 
 const CACHE_PLACE_PATH = "/cache";
 const CONFIG_PATH = "/cache/config.json";
+const CACHE_FOLDER_NAME = 'piccache';
+const HASH_SUBFOLDER_COUNT = 3;
 
 # define("CACHE_PLACE_PATH", sys_get_temp_dir());
 # Also possible:
@@ -120,15 +122,15 @@ class Cache
 
     private function get_filename_extension(string $url, string $store_filename): string
     {
-        $content_type = $this->extract_content_type($url);
-        $content_type_extension = $this->get_extension_from_content_type($content_type);
-        if ($content_type_extension) {
-            return $content_type_extension;
+        $path_extension = pathinfo($store_filename, PATHINFO_EXTENSION);
+        if (!$this->isRedgifs($url) && array_key_exists($path_extension, $this->extensions)) {
+            return $this->map_extension($path_extension);
         }
 
-        $path_extension = pathinfo($store_filename, PATHINFO_EXTENSION);
-        if (array_key_exists($path_extension, $this->extensions)) {
-            return $this->map_extension($path_extension);
+        $content_type = $this->extract_content_type($url);
+        $content_type_extension = $this->get_extension_from_content_type($content_type);
+        if ($content_type_extension && array_key_exists($content_type_extension, $this->extensions)) {
+            return $this->map_extension($content_type_extension);
         }
 
         if ($this->isRedgifs($url)) {
@@ -140,19 +142,26 @@ class Cache
 
     private function get_filename($url): string
     {
-        $parent_folder = $this->join_paths(CACHE_PLACE_PATH, 'piccache');
-
+        $url_hash = hash('sha256', $url);
         $parsed_url = parse_url($url);
-        $parts = explode('.', $parsed_url['host']);
-        $domain = implode('.', array_slice($parts, count($parts) - 2));
-        $domain_folder = $this->join_paths($parent_folder, $domain);
-        if (!file_exists($domain_folder)) {
-            umask(0);
-            mkdir($domain_folder, recursive: true);
-            chmod($domain_folder, 0775);
+        $host_parts = explode('.', $parsed_url['host']);
+        $domain = implode('.', array_slice($host_parts, count($host_parts) - 2));
+        $sub_hashes = [];
+        for ($i = 0; $i < HASH_SUBFOLDER_COUNT; $i++) {
+            if ($i >= strlen($url_hash)) {
+                $sub_hashes[] = "_";
+            } else {
+                $sub_hashes[] = $url_hash[$i];
+            }
         }
 
-        $url_hash = hash('sha256', $url);
+        $hash_folder = $this->join_paths(CACHE_PLACE_PATH, CACHE_FOLDER_NAME, $domain, ...$sub_hashes);
+        if (!file_exists($hash_folder)) {
+            umask(0);
+            mkdir($hash_folder, recursive: true);
+            chmod($hash_folder, 0775);
+        }
+
         $store_filename = explode('?', pathinfo($url, PATHINFO_BASENAME))[0];
         $store_extension = $this->get_filename_extension($url, $store_filename);
 
@@ -160,7 +169,7 @@ class Cache
             $store_filename = "${store_filename}.${store_extension}";
         }
 
-        return $this->join_paths($domain_folder, "$url_hash-$store_filename");
+        return $this->join_paths($hash_folder, "$url_hash-$store_filename");
     }
 
     private function get_extension_from_content_type(?string $content_type): ?string
@@ -181,8 +190,7 @@ class Cache
         ) {
 
             $parts = explode('/', $content_type_value, 2);
-            $extension = $parts[1];
-            return $this->map_extension($extension);
+            return $parts[1];
         }
 
         return null;
