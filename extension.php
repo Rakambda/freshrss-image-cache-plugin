@@ -169,8 +169,24 @@ class ImageCacheExtension extends Minz_Extension
         foreach ($links as $link) {
             if ($link->hasAttribute("href")) {
                 $href = $link->getAttribute("href");
-                if ($this->isRedgifs($href)) {
-                    Minz_Log::debug("ImageCache: found Redgifs video $href");
+                if ($this->isImageLink($href)) {
+                    Minz_Log::debug("ImageCache: found image link $href");
+                    $result = $imgCallback($href);
+                    if ($result) {
+                        try {
+                            $image = $doc->createElement('img');
+                            $image->setAttribute('src', $result);
+                            $image->setAttribute('class', 'reddit-image');
+
+                            $this->append_after($link, $image);
+                            Minz_Log::debug("ImageCache: added image link with $result");
+                        } catch (Exception $e) {
+                            Minz_Log::error("Failed to create new DOM element $e");
+                        }
+                    }
+                }
+                if ($this->isVideoLink($href)) {
+                    Minz_Log::debug("ImageCache: found video link $href");
                     $result = $videoCallback($href);
                     if ($result) {
                         try {
@@ -179,26 +195,11 @@ class ImageCacheExtension extends Minz_Extension
 
                             $video = $doc->createElement('video');
                             $video->setAttribute('controls', 'true');
-                            $video->setAttribute('style', 'max-height: 99vh;');
+                            $video->setAttribute('class', 'reddit-image');
                             $video->appendChild($source);
 
                             $this->append_after($link, $video);
-                            Minz_Log::debug("ImageCache: added Redgif video with $result");
-                        } catch (Exception $e) {
-                            Minz_Log::error("Failed to create new DOM element $e");
-                        }
-                    }
-                }
-                if ($this->isImgur($href)) {
-                    Minz_Log::debug("ImageCache: found Imgur image $href");
-                    $result = $imgCallback($href);
-                    if ($result) {
-                        try {
-                            $image = $doc->createElement('img');
-                            $image->setAttribute('src', $result);
-
-                            $this->append_after($link, $image);
-                            Minz_Log::debug("ImageCache: added Imgur image with $result");
+                            Minz_Log::debug("ImageCache: added video link with $result");
                         } catch (Exception $e) {
                             Minz_Log::error("Failed to create new DOM element $e");
                         }
@@ -292,15 +293,21 @@ class ImageCacheExtension extends Minz_Extension
         return false;
     }
 
-    private function isRedgifs(string $src): bool
+    private function isVideoLink(string $src): bool
     {
         $parsed_url = parse_url($src);
         return str_contains($parsed_url['host'], 'redgifs.com');
     }
 
-    private function isImgur(string $src): bool
+    private function isImageLink(string $src): bool
     {
         $parsed_url = parse_url($src);
-        return str_contains($parsed_url['host'], 'imgur.com');
+        if (str_contains($parsed_url['host'], 'imgur.com')) {
+            return true;
+        }
+        if (str_contains($parsed_url['host'], 'i.redd.it')) {
+            return true;
+        }
+        return false;
     }
 }
