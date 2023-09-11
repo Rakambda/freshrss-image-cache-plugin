@@ -272,53 +272,16 @@ class Cache
         $user_agent = Config::get_user_agent();
 
         if ($this->isRedgifs($url)) {
-            $parsed_url = parse_url($url);
-            $path = $parsed_url['path'];
-            $gif_id = basename($path);
-
-            $bearer = Config::get_redgifs_bearer();
-
-            $context = stream_context_create(["http" => [
-                'header' => "Authorization: Bearer $bearer\r\nUser-Agent: $user_agent\r\n"
-            ]]);
-            $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id?views=yes&users=yes&niches=yes", false, $context);
-            if (!$api_response) {
+            $url = $this->get_redgifs_url($url);
+            if (!$url) {
                 return [false, []];
             }
-
-            $json_response = json_decode($api_response, associative: true);
-            if (!$json_response) {
-                return [false, []];
-            }
-            $url = $json_response['gif']['urls']['hd'];
         }
         if ($this->isImgur($url)) {
-            $parsed_url = parse_url($url);
-            $path = $parsed_url['path'];
-            $post_id = implode(explode('.', basename($path), -1));
-
-            $bearer = Config::get_imgur_client_id();
-
-            $context = stream_context_create(["http" => [
-                'header' => "Authorization: Client-ID $bearer\r\nUser-Agent: $user_agent\r\n"
-            ]]);
-            print_r("https://api.imgur.com/3/image/$post_id");
-            print_r("\n");
-            $api_response = file_get_contents("https://api.imgur.com/3/image/$post_id", false, $context);
-            if (!$api_response || $this->content_type_contains($http_response_header, 'text/html')) {
-                print_r("ERROR");
-                print_r($api_response);
-                print_r($http_response_header);
+            $url = $this->get_imgur_url($url);
+            if (!$url) {
                 return [false, []];
             }
-
-            print_r($api_response);
-            print_r("\n");
-            $json_response = json_decode($api_response, associative: true);
-            if (!$json_response || !$json_response["success"]) {
-                return [false, []];
-            }
-            $url = $json_response['data']['link'];
         }
 
         $context = stream_context_create(["http" => [
@@ -326,6 +289,73 @@ class Cache
         ]]);
         $content = file_get_contents($url, false, $context);
         return [$content, $http_response_header];
+    }
+
+    private function get_redgifs_url(string $url): ?string
+    {
+        $parsed_url = parse_url($url);
+        $path = $parsed_url['path'];
+        $gif_id = basename($path);
+
+        $user_agent = Config::get_user_agent();
+        $bearer = Config::get_redgifs_bearer();
+
+        $context = stream_context_create(["http" => [
+            'header' => "Authorization: Bearer $bearer\r\nUser-Agent: $user_agent\r\n"
+        ]]);
+        $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id?views=yes&users=yes&niches=yes", false, $context);
+        if (!$api_response) {
+            return null;
+        }
+
+        $json_response = json_decode($api_response, associative: true);
+        if (!$json_response) {
+            return null;
+        }
+        return $json_response['gif']['urls']['hd'];
+    }
+
+    private function get_imgur_url(string $url): ?string
+    {
+        $parsed_url = parse_url($url);
+        $path = $parsed_url['path'];
+        $post_id = implode(explode('.', basename($path), -1));
+
+        print_r($path);
+        if (str_ends_with($path, '.gifv')) {
+            $direct_url = "https://i.imgur.com/$post_id.mp4";
+            print_r($direct_url);
+            $content_type = $this->extract_content_type($direct_url);
+            print_r($content_type);
+            if ($content_type) {
+                if (str_starts_with($content_type, 'image/') || str_starts_with($content_type, 'video/')) {
+                    return $direct_url;
+                }
+            }
+        }
+
+        $user_agent = Config::get_user_agent();
+        $bearer = Config::get_imgur_client_id();
+
+        $context = stream_context_create(["http" => [
+            'header' => "Authorization: Client-ID $bearer\r\nUser-Agent: $user_agent\r\n"
+        ]]);
+
+        $api_response = file_get_contents("https://api.imgur.com/3/image/$post_id", false, $context);
+        if (!$api_response || $this->content_type_contains($http_response_header, 'text/html')) {
+            print_r("ERROR");
+            print_r($api_response);
+            print_r($http_response_header);
+            return null;
+        }
+
+        print_r($api_response);
+        print_r("\n");
+        $json_response = json_decode($api_response, associative: true);
+        if (!$json_response || !$json_response["success"]) {
+            return null;
+        }
+        return $json_response['data']['link'];
     }
 
     private function isRedgifs(string $url): bool
