@@ -309,6 +309,8 @@ class Cache
                 return [false, []];
             }
 
+            print_r($api_response);
+            print_r("\n");
             $json_response = json_decode($api_response, associative: true);
             if (!$json_response || !$json_response["success"]) {
                 return [false, []];
