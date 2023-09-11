@@ -302,6 +302,8 @@ class Cache
             $context = stream_context_create(["http" => [
                 'header' => "Authorization: Client-ID $bearer\r\nUser-Agent: $user_agent\r\n"
             ]]);
+            print_r("https://api.imgur.com/3/image/$post_id");
+            print_r("\n");
             $api_response = file_get_contents("https://api.imgur.com/3/image/$post_id", false, $context);
             if (!$api_response || $this->content_type_contains($http_response_header, 'text/html')) {
                 return [false, []];
