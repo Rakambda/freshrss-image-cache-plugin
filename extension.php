@@ -215,9 +215,7 @@ class ImageCacheExtension extends Minz_Extension
     private function wrap_element(DOMDocument $doc, DOMNode $node): DOMNode
     {
         $div = $doc->createElement('div');
-        $div->appendChild($doc->createElement('br'));
         $div->appendChild($node);
-        $div->appendChild($doc->createElement('br'));
         return $div;
     }
 
