@@ -321,12 +321,9 @@ class Cache
         $path = $parsed_url['path'];
         $post_id = implode(explode('.', basename($path), -1));
 
-        print_r($path);
         if (str_ends_with($path, '.gifv')) {
             $direct_url = "https://i.imgur.com/$post_id.mp4";
-            print_r($direct_url);
             $content_type = $this->extract_content_type($direct_url);
-            print_r($content_type);
             if ($content_type) {
                 if (str_starts_with($content_type, 'image/') || str_starts_with($content_type, 'video/')) {
                     return $direct_url;
@@ -343,14 +340,9 @@ class Cache
 
         $api_response = file_get_contents("https://api.imgur.com/3/image/$post_id", false, $context);
         if (!$api_response || $this->content_type_contains($http_response_header, 'text/html')) {
-            print_r("ERROR");
-            print_r($api_response);
-            print_r($http_response_header);
             return null;
         }
 
-        print_r($api_response);
-        print_r("\n");
         $json_response = json_decode($api_response, associative: true);
         if (!$json_response || !$json_response["success"]) {
             return null;
