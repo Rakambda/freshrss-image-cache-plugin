@@ -287,6 +287,9 @@ class Cache
             }
 
             $json_response = json_decode($api_response, associative: true);
+            if (!$json_response) {
+                return [false, []];
+            }
             $url = $json_response['gif']['urls']['hd'];
         }
         if ($this->isImgur($url)) {
@@ -300,12 +303,12 @@ class Cache
                 'header' => "Authorization: Client-ID $bearer\r\nUser-Agent: $user_agent\r\n"
             ]]);
             $api_response = file_get_contents("https://api.imgur.com/3/image/$post_id", false, $context);
-            if (!$api_response) {
+            if (!$api_response || $this->content_type_contains($http_response_header, 'text/html')) {
                 return [false, []];
             }
 
             $json_response = json_decode($api_response, associative: true);
-            if (!$json_response["success"]) {
+            if (!$json_response || !$json_response["success"]) {
                 return [false, []];
             }
             $url = $json_response['data']['link'];
@@ -315,8 +318,7 @@ class Cache
             'header' => "User-Agent: $user_agent\r\n",
         ]]);
         $content = file_get_contents($url, false, $context);
-        $headers = $http_response_header;
-        return [$content, $headers];
+        return [$content, $http_response_header];
     }
 
     private function isRedgifs(string $url): bool
@@ -341,10 +343,8 @@ class Cache
         if (!$content) {
             return new FetchHit(false, false, headers: $headers, comment: 'Could not get media content');
         }
-        if ($headers and isset($headers['Content-Type'])) {
-            if (str_contains($headers['Content-Type'], 'text/html')) {
-                return new FetchHit(false, true, headers: $headers, comment: 'Response has HTML content type');
-            }
+        if ($this->content_type_contains($headers, 'text/html')) {
+            return new FetchHit(false, true, headers: $headers, comment: 'Response has HTML content type');
         }
         if (preg_match("#^\s*<!doctype html>.*#i", $content)) {
             return new FetchHit(false, true, headers: $headers, comment: 'Response was HTML');
@@ -388,6 +388,17 @@ class Cache
     private function get_url_hash(string $url): string
     {
         return hash('sha256', $url);
+    }
+
+    private function content_type_contains(array $headers, string $type): bool
+    {
+        if (!$headers or !isset($headers['Content-Type'])) {
+            return false;
+        }
+        if (str_contains($headers['Content-Type'], $type)) {
+            return true;
+        }
+        return false;
     }
 }
 
