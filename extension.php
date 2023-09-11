@@ -99,12 +99,12 @@ class ImageCacheExtension extends Minz_Extension
         );
     }
 
-    private function append_after(DOMNode $node, DOMNode $add): void
+    private function append_after(DOMNode $node, DOMNode $add): DOMNode|false
     {
         try {
-            $node->parentNode->insertBefore($add, $node->nextSibling);
+            return $node->parentNode->insertBefore($add, $node->nextSibling);
         } catch (\Exception $e) {
-            $node->parentNode->appendChild($add);
+            return $node->parentNode->appendChild($add);
         }
     }
 
@@ -178,7 +178,7 @@ class ImageCacheExtension extends Minz_Extension
                             $image->setAttribute('src', $result);
                             $image->setAttribute('class', 'reddit-image');
 
-                            $this->append_after($link, $image);
+                            $this->append_after($link, $this->wrap_element($doc, $image));
                             Minz_Log::debug("ImageCache: added image link with $result");
                         } catch (Exception $e) {
                             Minz_Log::error("Failed to create new DOM element $e");
@@ -198,7 +198,7 @@ class ImageCacheExtension extends Minz_Extension
                             $video->setAttribute('class', 'reddit-image');
                             $video->appendChild($source);
 
-                            $this->append_after($link, $video);
+                            $this->append_after($link, $this->wrap_element($doc, $video));
                             Minz_Log::debug("ImageCache: added video link with $result");
                         } catch (Exception $e) {
                             Minz_Log::error("Failed to create new DOM element $e");
@@ -207,6 +207,18 @@ class ImageCacheExtension extends Minz_Extension
                 }
             }
         }
+    }
+
+    /**
+     * @throws DOMException
+     */
+    private function wrap_element(DOMDocument $doc, DOMNode $node): DOMNode
+    {
+        $div = $doc->createElement('div');
+        $div->appendChild($doc->createElement('br'));
+        $div->appendChild($node);
+        $div->appendChild($doc->createElement('br'));
+        return $div;
     }
 
     private function getCachedSetUrl(array $matches): string
