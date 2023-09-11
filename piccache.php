@@ -3,6 +3,8 @@
 //error_reporting(E_ALL);
 //ini_set('display_errors', 'On');
 
+use JetBrains\PhpStorm\NoReturn;
+
 const CACHE_PLACE_PATH = "/cache";
 const CONFIG_PATH = "/cache/config.json";
 const CACHE_FOLDER_NAME = 'piccache';
@@ -120,6 +122,44 @@ class Cache
         return preg_replace('~[/\\\\]+~', DIRECTORY_SEPARATOR, implode(DIRECTORY_SEPARATOR, $paths));
     }
 
+    private function get_filename($url): string
+    {
+        $hash_folder = $this->get_folder($url);
+        if (!file_exists($hash_folder)) {
+            umask(0);
+            mkdir($hash_folder, recursive: true);
+            chmod($hash_folder, 0775);
+        }
+
+        $store_filename = explode('?', pathinfo($url, PATHINFO_BASENAME))[0];
+        $store_extension = $this->get_filename_extension($url, $store_filename);
+
+        if (!str_ends_with(".${store_filename}", $store_extension)) {
+            $store_filename = "${store_filename}.${store_extension}";
+        }
+
+        $url_hash = $this->get_url_hash($url);
+        return $this->join_paths($hash_folder, "$url_hash-$store_filename");
+    }
+
+    private function get_folder(string $url): string
+    {
+        $url_hash = $this->get_url_hash($url);
+        $parsed_url = parse_url($url);
+        $host_parts = explode('.', $parsed_url['host']);
+        $domain = implode('.', array_slice($host_parts, count($host_parts) - 2));
+        $sub_hashes = [];
+        for ($i = 0; $i < HASH_SUBFOLDER_COUNT; $i++) {
+            if ($i >= strlen($url_hash)) {
+                $sub_hashes[] = "_";
+            } else {
+                $sub_hashes[] = $url_hash[$i];
+            }
+        }
+
+        return $this->join_paths(CACHE_PLACE_PATH, CACHE_FOLDER_NAME, $domain, ...$sub_hashes);
+    }
+
     private function get_filename_extension(string $url, string $store_filename): string
     {
         $path_extension = pathinfo($store_filename, PATHINFO_EXTENSION);
@@ -138,38 +178,6 @@ class Cache
         }
 
         return $path_extension;
-    }
-
-    private function get_filename($url): string
-    {
-        $url_hash = hash('sha256', $url);
-        $parsed_url = parse_url($url);
-        $host_parts = explode('.', $parsed_url['host']);
-        $domain = implode('.', array_slice($host_parts, count($host_parts) - 2));
-        $sub_hashes = [];
-        for ($i = 0; $i < HASH_SUBFOLDER_COUNT; $i++) {
-            if ($i >= strlen($url_hash)) {
-                $sub_hashes[] = "_";
-            } else {
-                $sub_hashes[] = $url_hash[$i];
-            }
-        }
-
-        $hash_folder = $this->join_paths(CACHE_PLACE_PATH, CACHE_FOLDER_NAME, $domain, ...$sub_hashes);
-        if (!file_exists($hash_folder)) {
-            umask(0);
-            mkdir($hash_folder, recursive: true);
-            chmod($hash_folder, 0775);
-        }
-
-        $store_filename = explode('?', pathinfo($url, PATHINFO_BASENAME))[0];
-        $store_extension = $this->get_filename_extension($url, $store_filename);
-
-        if (!str_ends_with(".${store_filename}", $store_extension)) {
-            $store_filename = "${store_filename}.${store_extension}";
-        }
-
-        return $this->join_paths($hash_folder, "$url_hash-$store_filename");
     }
 
     private function get_extension_from_content_type(?string $content_type): ?string
@@ -311,13 +319,13 @@ class Cache
         return [$content, $headers];
     }
 
-    private function isRedgifs(string $url)
+    private function isRedgifs(string $url): bool
     {
         $parsed_url = parse_url($url);
         return str_contains($parsed_url['host'], 'redgifs.com');
     }
 
-    private function isImgur(string $url)
+    private function isImgur(string $url): bool
     {
         $parsed_url = parse_url($url);
         return str_contains($parsed_url['host'], 'imgur.com');
@@ -325,23 +333,24 @@ class Cache
 
     public function store_in_cache(string $url): FetchHit
     {
-        $file_name = $this->get_filename($url);
-        if (file_exists($file_name)) {
-            return new FetchHit(true, false, $file_name, comment: 'File already exists in cache');
+        if ($this->is_cached($url)) {
+            return new FetchHit(true, false, comment: 'File already exists in cache');
         }
 
         [$content, $headers] = $this->get_link_content($url);
         if (!$content) {
-            return new FetchHit(false, false, $file_name, $headers, 'Could not get media content');
+            return new FetchHit(false, false, headers: $headers, comment: 'Could not get media content');
         }
         if ($headers and isset($headers['Content-Type'])) {
             if (str_contains($headers['Content-Type'], 'text/html')) {
-                return new FetchHit(false, true, $file_name, $headers, 'Response has HTML content type');
+                return new FetchHit(false, true, headers: $headers, comment: 'Response has HTML content type');
             }
         }
         if (preg_match("#^\s*<!doctype html>.*#i", $content)) {
-            return new FetchHit(false, true, $file_name, $headers, 'Response was HTML');
+            return new FetchHit(false, true, headers: $headers, comment: 'Response was HTML');
         }
+
+        $file_name = $this->get_filename($url);
 
         umask(0);
         file_put_contents($file_name, $content);
@@ -352,22 +361,38 @@ class Cache
     public function get_cached_data(string $url): CacheHit
     {
         $this->store_in_cache($url);
-        $file_name = $this->get_filename($url);
-        if (!file_exists($file_name)) {
+        if (!$this->is_cached($url)) {
             return new CacheHit();
         }
 
+        $file_name = $this->get_filename($url);
         $file_size = filesize($file_name);
 
-        $finfo = finfo_open(FILEINFO_MIME);
-        $content_type = finfo_file($finfo, $file_name);
-        finfo_close($finfo);
+        $file_info = finfo_open(FILEINFO_MIME);
+        $content_type = finfo_file($file_info, $file_name);
+        finfo_close($file_info);
 
         return new CacheHit(true, $file_name, $file_size, $content_type);
     }
+
+    private function is_cached(string $url): bool
+    {
+        $folder = $this->get_folder($url);
+        $hash = $this->get_url_hash($url);
+        if (glob("$folder/$hash*", GLOB_NOSORT)) {
+            return true;
+        }
+        return false;
+    }
+
+    private function get_url_hash(string $url): string
+    {
+        return hash('sha256', $url);
+    }
 }
 
-function end_wrong_query()
+#[NoReturn]
+function end_wrong_query(): void
 {
     http_response_code(400);
     exit();
