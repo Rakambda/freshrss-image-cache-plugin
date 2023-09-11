@@ -176,7 +176,7 @@ class ImageCacheExtension extends Minz_Extension
                         try {
                             $image = $doc->createElement('img');
                             $image->setAttribute('src', $result);
-                            $image->setAttribute('previous-src', $link);
+                            $image->setAttribute('previous-src', $href);
                             $image->setAttribute('class', 'reddit-image');
 
                             $this->append_after($link, $this->wrap_element($doc, $image));
@@ -193,7 +193,7 @@ class ImageCacheExtension extends Minz_Extension
                         try {
                             $source = $doc->createElement('source');
                             $source->setAttribute('src', $result);
-                            $source->setAttribute('previous-src', $link);
+                            $source->setAttribute('previous-src', $href);
 
                             $video = $doc->createElement('video');
                             $video->setAttribute('controls', 'true');
