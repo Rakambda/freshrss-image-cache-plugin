@@ -240,7 +240,7 @@ class ImageCacheExtension extends Minz_Extension
         curl_close($ch);
 
         if ($code == 404) {
-            $this->uploadUrl($url);
+            //$this->uploadUrl($url);
         }
 
         return $cache_url;
