@@ -152,62 +152,78 @@ class ImageCacheExtension extends Minz_Extension
                     continue;
                 }
 
-                if ($source->hasAttribute("src")) {
-                    $src = $source->getAttribute("src");
-                    Minz_Log::debug("ImageCache: found video source $src");
-                    $result = $videoCallback($src);
-                    if ($result) {
-                        $source->setAttribute("previous-src", $src);
-                        $source->setAttribute("src", $result);
-                        Minz_Log::debug("ImageCache: replaced with $result");
-                    }
+                if (!$source->hasAttribute("src")) {
+                    continue;
+                }
+                
+                $src = $source->getAttribute("src");
+                Minz_Log::debug("ImageCache: found video source $src");
+                $result = $videoCallback($src);
+                if ($result) {
+                    $source->setAttribute("previous-src", $src);
+                    $source->setAttribute("src", $result);
+                    Minz_Log::debug("ImageCache: replaced with $result");
                 }
             }
         }
 
         $links = $doc->getElementsByTagName("a");
         foreach ($links as $link) {
-            if ($link->hasAttribute("href")) {
-                $href = $link->getAttribute("href");
-                if ($this->isImageLink($href)) {
-                    Minz_Log::debug("ImageCache: found image link $href");
-                    $result = $imgCallback($href);
-                    if ($result) {
-                        try {
-                            $image = $doc->createElement('img');
-                            $image->setAttribute('src', $result);
-                            $image->setAttribute('previous-src', $href);
-                            $image->setAttribute('class', 'reddit-image');
-
-                            $this->append_after($link, $this->wrap_element($doc, $image));
-                            Minz_Log::debug("ImageCache: added image link with $result");
-                        } catch (Exception $e) {
-                            Minz_Log::error("Failed to create new DOM element $e");
-                        }
-                    }
-                }
-                if ($this->isVideoLink($href)) {
-                    Minz_Log::debug("ImageCache: found video link $href");
-                    $result = $videoCallback($href);
-                    if ($result) {
-                        try {
-                            $source = $doc->createElement('source');
-                            $source->setAttribute('src', $result);
-                            $source->setAttribute('previous-src', $href);
-
-                            $video = $doc->createElement('video');
-                            $video->setAttribute('controls', 'true');
-                            $video->setAttribute('class', 'reddit-image');
-                            $video->appendChild($source);
-
-                            $this->append_after($link, $this->wrap_element($doc, $video));
-                            Minz_Log::debug("ImageCache: added video link with $result");
-                        } catch (Exception $e) {
-                            Minz_Log::error("Failed to create new DOM element $e");
-                        }
-                    }
-                }
+            if (!$link->hasAttribute("href")) {
+                continue;
             }
+            $href = $link->getAttribute("href");
+            
+            if (!$this->isImageLink($href) && !$this->isVideoLink($href)) {
+                continue;
+            }
+            
+            Minz_Log::debug("ImageCache: found link $href");
+            $result = $imgCallback($href);
+            if (!$result) {
+                continue;
+            }
+            
+            if($this->isVideoLink($href)) {
+                $this->append_video($doc, $link, $href, $result);
+            }
+            else {
+                $this->append_image($doc, $link, $href, $result);
+            }
+        }
+    }
+
+    private function append_image(DOMDocument $doc, DOMNode $node, string $originalLink, string $newLink)
+    {
+        try {
+            $image = $doc->createElement('img');
+            $image->setAttribute('src', $newLink);
+            $image->setAttribute('previous-src', $originalLink);
+            $image->setAttribute('class', 'reddit-image');
+
+            $this->append_after($node, $this->wrap_element($doc, $image));
+            Minz_Log::debug("ImageCache: added image link with $result");
+        } catch (Exception $e) {
+            Minz_Log::error("Failed to create new DOM element $e");
+        }
+    }
+
+    private function append_video(DOMDocument $doc, DOMNode $node, string $originalLink, string $newLink)
+    {
+        try {
+            $source = $doc->createElement('source');
+            $source->setAttribute('src', $newLink);
+            $source->setAttribute('previous-src', $originalLink);
+
+            $video = $doc->createElement('video');
+            $video->setAttribute('controls', 'true');
+            $video->setAttribute('class', 'reddit-image');
+            $video->appendChild($source);
+
+            $this->append_after($node, $this->wrap_element($doc, $video));
+            Minz_Log::debug("ImageCache: added video link with $result");
+        } catch (Exception $e) {
+            Minz_Log::error("Failed to create new DOM element $e");
         }
     }
 
@@ -308,7 +324,13 @@ class ImageCacheExtension extends Minz_Extension
     private function isVideoLink(string $src): bool
     {
         $parsed_url = parse_url($src);
-        return str_contains($parsed_url['host'], 'redgifs.com');
+        if(str_contains($parsed_url['host'], 'redgifs.com')) {
+            return true;
+        }
+        if(str_ends_with($parsed_url['path'], ".gifv")){
+            return true;
+        }
+        return false;
     }
 
     private function isImageLink(string $src): bool
