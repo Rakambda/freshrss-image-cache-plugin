@@ -202,7 +202,7 @@ class ImageCacheExtension extends Minz_Extension
             $image->setAttribute('class', 'reddit-image');
 
             $this->append_after($node, $this->wrap_element($doc, $image));
-            Minz_Log::debug("ImageCache: added image link with $result");
+            Minz_Log::debug("ImageCache: added image link with $originalLink => $newLink");
         } catch (Exception $e) {
             Minz_Log::error("Failed to create new DOM element $e");
         }
@@ -221,7 +221,7 @@ class ImageCacheExtension extends Minz_Extension
             $video->appendChild($source);
 
             $this->append_after($node, $this->wrap_element($doc, $video));
-            Minz_Log::debug("ImageCache: added video link with $result");
+            Minz_Log::debug("ImageCache: added video link with $originalLink => $newLink");
         } catch (Exception $e) {
             Minz_Log::error("Failed to create new DOM element $e");
         }
