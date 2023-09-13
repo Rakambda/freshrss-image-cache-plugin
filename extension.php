@@ -231,17 +231,17 @@ class ImageCacheExtension extends Minz_Extension
         $url = rawurlencode($url);
         $cache_url = FreshRSS_Context::$user_conf->image_cache_url . $url;
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $cache_url);
-        curl_setopt($ch, CURLOPT_NOBODY, true);
-        curl_exec($ch);
+        //$ch = curl_init();
+        //curl_setopt($ch, CURLOPT_URL, $cache_url);
+        //curl_setopt($ch, CURLOPT_NOBODY, true);
+        //curl_exec($ch);
 
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        //$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        //curl_close($ch);
 
-        if ($code == 404) {
-            //$this->uploadUrl($url);
-        }
+        //if ($code == 404) {
+        //    $this->uploadUrl($url);
+        //}
 
         return $cache_url;
     }
