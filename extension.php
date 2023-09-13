@@ -155,7 +155,7 @@ class ImageCacheExtension extends Minz_Extension
                 if (!$source->hasAttribute("src")) {
                     continue;
                 }
-                
+
                 $src = $source->getAttribute("src");
                 Minz_Log::debug("ImageCache: found video source $src");
                 $result = $videoCallback($src);
@@ -173,21 +173,20 @@ class ImageCacheExtension extends Minz_Extension
                 continue;
             }
             $href = $link->getAttribute("href");
-            
+
             if (!$this->isImageLink($href) && !$this->isVideoLink($href)) {
                 continue;
             }
-            
+
             Minz_Log::debug("ImageCache: found link $href");
             $result = $imgCallback($href);
             if (!$result) {
                 continue;
             }
-            
-            if($this->isVideoLink($href)) {
+
+            if ($this->isVideoLink($href)) {
                 $this->append_video($doc, $link, $href, $result);
-            }
-            else {
+            } else {
                 $this->append_image($doc, $link, $href, $result);
             }
         }
@@ -244,22 +243,33 @@ class ImageCacheExtension extends Minz_Extension
 
     private function getCachedUrl(string $url): string
     {
-        $url = rawurlencode($url);
-        $cache_url = FreshRSS_Context::$user_conf->image_cache_url . $url;
+        $parsed_url = parse_url($url);
+        if (str_contains($parsed_url['host'], 'redgifs.com')) {
+            if (!$this->isUrlCached($url)) {
+                $this->uploadUrl($url);
+            }
+        }
 
-        //$ch = curl_init();
-        //curl_setopt($ch, CURLOPT_URL, $cache_url);
-        //curl_setopt($ch, CURLOPT_NOBODY, true);
-        //curl_exec($ch);
+        $encoded_url = rawurlencode($url);
+        return FreshRSS_Context::$user_conf->image_cache_url . $encoded_url;
+    }
 
-        //$code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        //curl_close($ch);
+    private function isUrlCached(string $url): bool
+    {
+        $encoded_url = rawurlencode($url);
+        $cache_url = FreshRSS_Context::$user_conf->image_cache_url . $encoded_url;
 
-        //if ($code == 404) {
-        //    $this->uploadUrl($url);
-        //}
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $cache_url);
+        curl_setopt($ch, CURLOPT_NOBODY, true);
+        curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
 
-        return $cache_url;
+        if ($code == 404) {
+            return false;
+        }
+        return true;
     }
 
     private function uploadSetUrls(array $matches): void
@@ -324,10 +334,10 @@ class ImageCacheExtension extends Minz_Extension
     private function isVideoLink(string $src): bool
     {
         $parsed_url = parse_url($src);
-        if(str_contains($parsed_url['host'], 'redgifs.com')) {
+        if (str_contains($parsed_url['host'], 'redgifs.com')) {
             return true;
         }
-        if(str_ends_with($parsed_url['path'], ".gifv")){
+        if (str_ends_with($parsed_url['path'], ".gifv")) {
             return true;
         }
         return false;
