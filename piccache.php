@@ -438,6 +438,42 @@ function end_wrong_query(): void
     exit();
 }
 
+function reply_video(CacheHit $cache_hit)
+{
+    $filesize = $cache_hit->length;
+    $length = $filesize;
+    $offset = 0;
+
+    if (isset($_SERVER['HTTP_RANGE'])) {
+        $partialContent = true;
+        preg_match('/bytes=(\d+)-(\d+)?/', $_SERVER['HTTP_RANGE'], $matches);
+
+        $offset = intval($matches[1]);
+        $length = (($matches[2]) ? intval($matches[2]) : $filesize) - $offset;
+    } else {
+        $partialContent = false;
+    }
+
+    $file = fopen($cache_hit->filename, 'r');
+    fseek($file, $offset);
+    $data = fread($file, $length);
+    fclose($file);
+
+    if ($partialContent) {
+        header('HTTP/1.1 206 Partial Content');
+        header('Content-Range: bytes ' . $offset . '-' . ($offset + $length - 1) . '/' . $filesize);
+    }
+
+    header('X-Piccache-Status: HIT');
+    header("X-Piccache-File: $cache_hit->filename");
+    header('Content-Type: ' . $cache_hit->content_type);
+    header('Content-Length: ' . $filesize);
+    header('Content-Disposition: attachment; filename="' . $file . '"');
+    header('Accept-Ranges: bytes');
+
+    print($data);
+}
+
 $cache = new Cache();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -462,11 +498,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: $url", true, 302);
         exit();
     } else {
-        header('X-Piccache-Status: HIT');
-        header("X-Piccache-File: $cache_hit->filename");
-        header("Content-Type: $cache_hit->content_type");
-        header("Content-Length: $cache_hit->length");
-        fpassthru(fopen($cache_hit->filename, 'rb'));
+        if (str_starts_with($cache_hit->content_type, 'video/')) {
+            reply_video($cache_hit);
+        } else {
+            header('X-Piccache-Status: HIT');
+            header("X-Piccache-File: $cache_hit->filename");
+            header("Content-Type: $cache_hit->content_type");
+            header("Content-Length: $cache_hit->length");
+            fpassthru(fopen($cache_hit->filename, 'rb'));
+        }
     }
 
 } elseif ($_SERVER['REQUEST_METHOD'] === 'HEAD') {
