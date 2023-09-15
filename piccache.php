@@ -460,16 +460,17 @@ function reply_video(CacheHit $cache_hit)
     fclose($file);
 
     if ($partialContent) {
-        header('HTTP/1.1 206 Partial Content');
-        header('Content-Range: bytes ' . $offset . '-' . ($offset + $length - 1) . '/' . $filesize);
+        $bytes_length = $offset + $length - 1;
+        header("HTTP/1.1 206 Partial Content");
+        header("Content-Range: bytes -$bytes_length/$filesize");
     }
 
-    header('X-Piccache-Status: HIT');
+    header("X-Piccache-Status: HIT");
     header("X-Piccache-File: $cache_hit->filename");
-    header('Content-Type: ' . $cache_hit->content_type);
-    header('Content-Length: ' . $filesize);
-    header('Content-Disposition: attachment; filename="' . $file . '"');
-    header('Accept-Ranges: bytes');
+    header("Content-Type: $cache_hit->content_type");
+    header("Content-Length: $filesize");
+    header("Content-Disposition: attachment; filename=\"$file\"");
+    header("Accept-Ranges: bytes");
 
     print($data);
 }
@@ -501,7 +502,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (str_starts_with($cache_hit->content_type, 'video/')) {
             reply_video($cache_hit);
         } else {
-            header('X-Piccache-Status: HIT');
+            header("X-Piccache-Status: HIT");
             header("X-Piccache-File: $cache_hit->filename");
             header("Content-Type: $cache_hit->content_type");
             header("Content-Length: $cache_hit->length");
