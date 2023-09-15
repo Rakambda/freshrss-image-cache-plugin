@@ -462,7 +462,7 @@ function reply_video(CacheHit $cache_hit)
     if ($partialContent) {
         $bytes_length = $offset + $length - 1;
         header("HTTP/1.1 206 Partial Content");
-        header("Content-Range: bytes -$bytes_length/$filesize");
+        header("Content-Range: bytes $offset-$bytes_length/$filesize");
     }
 
     header("X-Piccache-Status: HIT");
