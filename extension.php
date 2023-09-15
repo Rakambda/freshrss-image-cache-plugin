@@ -49,7 +49,7 @@ class ImageCacheExtension extends Minz_Extension
     {
         $current_user = Minz_Session::param('currentUser');
         $css_filename = join_path($this->getPath(), 'static', "style.{$current_user}.css");
-        file_put_contents($css_filename, "img.reddit-image, video.reddit-image {min-height: 100px; min-width: 100px; background-color: red;}");
+        file_put_contents($css_filename, "img.cache-image, video.cache-image {min-height: 100px; min-width: 100px; background-color: red;}");
         Minz_View::appendStyle($this->getFileUrl($css_filename, 'css'));
     }
 
@@ -109,7 +109,7 @@ class ImageCacheExtension extends Minz_Extension
         );
     }
 
-    private function append_after(DOMNode $node, DOMNode $add): DOMNode|false
+    private function appendAfter(DOMNode $node, DOMNode $add): DOMElement|false
     {
         try {
             return $node->parentNode->insertBefore($add, $node->nextSibling);
@@ -118,7 +118,7 @@ class ImageCacheExtension extends Minz_Extension
         }
     }
 
-    private function handleImages(DOMDocument $doc, callable $imgCallback, callable $imgSetCallback, callable $videoCallback)
+    private function handleImages(DOMDocument $doc, callable $imgCallback, callable $imgSetCallback, callable $videoCallback): void
     {
         $images = $doc->getElementsByTagName("img");
         foreach ($images as $image) {
@@ -144,6 +144,7 @@ class ImageCacheExtension extends Minz_Extension
                 if ($result) {
                     $image->setAttribute("previous-srcset", $srcSet);
                     $image->setAttribute("srcset", $result);
+                    $this->addClass($image, "cache-image");
                     Minz_Log::debug("ImageCache: replaced with $result");
                 }
             }
@@ -172,6 +173,7 @@ class ImageCacheExtension extends Minz_Extension
                 if ($result) {
                     $source->setAttribute("previous-src", $src);
                     $source->setAttribute("src", $result);
+                    $this->addClass($video, "cache-image");
                     Minz_Log::debug("ImageCache: replaced with $result");
                 }
             }
@@ -195,29 +197,39 @@ class ImageCacheExtension extends Minz_Extension
             }
 
             if ($this->isVideoLink($href)) {
-                $this->append_video($doc, $link, $href, $result);
+                $this->appendVideo($doc, $link, $href, $result);
             } else {
-                $this->append_image($doc, $link, $href, $result);
+                $this->appendImage($doc, $link, $href, $result);
             }
         }
     }
 
-    private function append_image(DOMDocument $doc, DOMNode $node, string $originalLink, string $newLink)
+    private function addClass(DOMElement $node, string $clazz): void
+    {
+        if ($node->hasAttribute("controls")) {
+            $previous = $node->getAttribute('class');
+            $node->setAttribute('class', "$previous $clazz");
+        } else {
+            $node->setAttribute('class', $clazz);
+        }
+    }
+
+    private function appendImage(DOMDocument $doc, DOMElement $node, string $originalLink, string $newLink): void
     {
         try {
             $image = $doc->createElement('img');
             $image->setAttribute('src', $newLink);
             $image->setAttribute('previous-src', $originalLink);
-            $image->setAttribute('class', 'reddit-image');
+            $image->setAttribute('class', 'reddit-image cache-image');
 
-            $this->append_after($node, $this->wrap_element($doc, $image));
+            $this->appendAfter($node, $this->wrapElement($doc, $image));
             Minz_Log::debug("ImageCache: added image link with $originalLink => $newLink");
         } catch (Exception $e) {
             Minz_Log::error("Failed to create new DOM element $e");
         }
     }
 
-    private function append_video(DOMDocument $doc, DOMNode $node, string $originalLink, string $newLink)
+    private function appendVideo(DOMDocument $doc, DOMElement $node, string $originalLink, string $newLink): void
     {
         try {
             $source = $doc->createElement('source');
@@ -226,10 +238,10 @@ class ImageCacheExtension extends Minz_Extension
 
             $video = $doc->createElement('video');
             $video->setAttribute('controls', 'true');
-            $video->setAttribute('class', 'reddit-image');
+            $video->setAttribute('class', 'reddit-image cache-image');
             $video->appendChild($source);
 
-            $this->append_after($node, $this->wrap_element($doc, $video));
+            $this->appendAfter($node, $this->wrapElement($doc, $video));
             Minz_Log::debug("ImageCache: added video link with $originalLink => $newLink");
         } catch (Exception $e) {
             Minz_Log::error("Failed to create new DOM element $e");
@@ -239,7 +251,7 @@ class ImageCacheExtension extends Minz_Extension
     /**
      * @throws DOMException
      */
-    private function wrap_element(DOMDocument $doc, DOMNode $node): DOMNode
+    private function wrapElement(DOMDocument $doc, DOMElement $node): DOMElement
     {
         $div = $doc->createElement('div');
         $div->appendChild($node);
