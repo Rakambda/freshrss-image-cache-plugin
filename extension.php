@@ -11,6 +11,8 @@ class ImageCacheExtension extends Minz_Extension
 
     public function init(): void
     {
+        $this->registerCss();
+
         $this->registerHook("entry_before_display", [$this, "content_modification_hook"]);
         $this->registerHook("entry_before_insert", [$this, "image_upload_hook"]);
 
@@ -41,6 +43,14 @@ class ImageCacheExtension extends Minz_Extension
         if ($save) {
             FreshRSS_Context::$user_conf->save();
         }
+    }
+
+    private function registerCss(): void
+    {
+        $current_user = Minz_Session::param('currentUser');
+        $css_filename = join_path($this->getPath(), 'static', "style.{$current_user}.css");
+        file_put_contents($css_filename, "img.reddit-image, video.reddit-image {min-height: 100px; min-width: 100px; background-color: red;}");
+        Minz_View::appendStyle($this->getFileUrl($css_filename, 'css'));
     }
 
     public function handleConfigureAction(): void
