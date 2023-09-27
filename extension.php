@@ -125,6 +125,8 @@ class ImageCacheExtension extends Minz_Extension
 
     private function handleImages(DOMDocument $doc, string $callSource, callable $imgCallback, callable $imgSetCallback, callable $videoCallback): void
     {
+        Minz_Log::debug("ImageCache[$callSource]: scanning new document");
+
         $images = $doc->getElementsByTagName("img");
         foreach ($images as $image) {
             if ($image->hasAttribute("src")) {
