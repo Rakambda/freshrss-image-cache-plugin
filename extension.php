@@ -313,13 +313,16 @@ class ImageCacheExtension extends Minz_Extension
         if ($this->isCachedOnRemote($to_cache_cache_url)) {
             return;
         }
-        self::postUrl(FreshRSS_Context::$user_conf->image_cache_post_url, [
+        $cached = self::postUrl(FreshRSS_Context::$user_conf->image_cache_post_url, [
             "access_token" => FreshRSS_Context::$user_conf->image_cache_access_token,
             "url" => $to_cache_cache_url
         ]);
+        if ($cached) {
+            $this->setCachedOnRemote($to_cache_cache_url);
+        }
     }
 
-    private function postUrl(string $url, array $data): void
+    private function postUrl(string $url, array $data): bool
     {
         $data = json_encode($data);
         $dataLength = strlen($data);
@@ -336,8 +339,19 @@ class ImageCacheExtension extends Minz_Extension
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($curl, CURLOPT_TIMEOUT, 10);
-        curl_exec($curl);
+        $response = curl_exec($curl);
         curl_close($curl);
+
+        if (!$response) {
+            return false;
+        }
+
+        $jsonPayload = json_decode($response, associative: true);
+        if (!isset($jsonPayload["cached"])) {
+            return false;
+        }
+
+        return !!$jsonPayload["cached"];
     }
 
     private function loadContentAsDOM(string $content): DOMDocument

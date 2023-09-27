@@ -370,6 +370,12 @@ class Cache
 
         [$content, $headers] = $this->get_link_content($url);
         if (!$content) {
+            preg_match('/\d{3}/', $http_response_header[0], $matches);
+            $response_code = intval($matches[0]);
+            if ($response_code == 404) {
+                return new FetchHit(true, false, headers: $headers, comment: 'Got 404');
+            }
+
             return new FetchHit(false, false, headers: $headers, comment: 'Could not get media content');
         }
         if ($this->content_type_contains($headers, 'text/html')) {
