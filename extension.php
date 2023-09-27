@@ -290,6 +290,7 @@ class ImageCacheExtension extends Minz_Extension
     private function getCachedUrl(string $url): string
     {
         if ($this->isRecache($url) && !$this->isUrlCached($url)) {
+            Minz_Log::debug("ImageCache: Re-caching $url");
             $this->uploadUrl($url);
         }
 
