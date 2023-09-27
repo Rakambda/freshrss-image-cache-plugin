@@ -209,6 +209,8 @@ class ImageCacheExtension extends Minz_Extension
                 $this->appendImage($doc, $link, $href, $result);
             }
         }
+
+        Minz_Log::debug("ImageCache[$callSource]: done scanning document");
     }
 
     private function addClass(DOMElement $node, string $clazz): void
