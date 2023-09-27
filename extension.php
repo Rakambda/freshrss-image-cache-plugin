@@ -123,7 +123,7 @@ class ImageCacheExtension extends Minz_Extension
         }
     }
 
-    private function handleImages(DOMDocument $doc, string $source, callable $imgCallback, callable $imgSetCallback, callable $videoCallback): void
+    private function handleImages(DOMDocument $doc, string $callSource, callable $imgCallback, callable $imgSetCallback, callable $videoCallback): void
     {
         $images = $doc->getElementsByTagName("img");
         foreach ($images as $image) {
@@ -133,31 +133,31 @@ class ImageCacheExtension extends Minz_Extension
                     continue;
                 }
 
-                Minz_Log::debug("ImageCache[$source]: found image $src");
+                Minz_Log::debug("ImageCache[$callSource]: found image $src");
                 $result = $imgCallback($src);
                 if ($result) {
                     $image->setAttribute("previous-src", $src);
                     $image->setAttribute("src", $result);
-                    Minz_Log::debug("ImageCache[$source]: replaced with $result");
+                    Minz_Log::debug("ImageCache[$callSource]: replaced with $result");
                 }
             }
             if ($image->hasAttribute("srcset")) {
                 $srcSet = $image->getAttribute("srcset");
-                Minz_Log::debug("ImageCache[$source]: found image set $srcSet");
+                Minz_Log::debug("ImageCache[$callSource]: found image set $srcSet");
                 $result = preg_replace_callback("/(?:([^\s,]+)(\s*(?:\s+\d+[wx])(?:,\s*)?))/", $imgSetCallback, $srcSet);
                 $result = array_filter($result);
                 if ($result) {
                     $image->setAttribute("previous-srcset", $srcSet);
                     $image->setAttribute("srcset", $result);
                     $this->addClass($image, "cache-image");
-                    Minz_Log::debug("ImageCache[$source]: replaced with $result");
+                    Minz_Log::debug("ImageCache[$callSource]: replaced with $result");
                 }
             }
         }
 
         $videos = $doc->getElementsByTagName("video");
         foreach ($videos as $video) {
-            Minz_Log::debug("ImageCache[$source]: found video");
+            Minz_Log::debug("ImageCache[$callSource]: found video");
 
             if (!$video->hasAttribute("controls")) {
                 $video->setAttribute('controls', 'true');
@@ -173,13 +173,13 @@ class ImageCacheExtension extends Minz_Extension
                 }
 
                 $src = $source->getAttribute("src");
-                Minz_Log::debug("ImageCache[$source]: found video source $src");
+                Minz_Log::debug("ImageCache[$callSource]: found video source $src");
                 $result = $videoCallback($src);
                 if ($result) {
                     $source->setAttribute("previous-src", $src);
                     $source->setAttribute("src", $result);
                     $this->addClass($video, "cache-image");
-                    Minz_Log::debug("ImageCache[$source]: replaced with $result");
+                    Minz_Log::debug("ImageCache[$callSource]: replaced with $result");
                 }
             }
         }
@@ -195,7 +195,7 @@ class ImageCacheExtension extends Minz_Extension
                 continue;
             }
 
-            Minz_Log::debug("ImageCache[$source]: found link $href");
+            Minz_Log::debug("ImageCache[$callSource]: found link $href");
             $result = $imgCallback($href);
             if (!$result) {
                 continue;
