@@ -9,6 +9,9 @@ class ImageCacheExtension extends Minz_Extension
     const DEFAULT_CACHE_ACCESS_TOKEN = "";
     const DEFAULT_URL_ENCODE = "1";
 
+    const MAX_CACHED = 500;
+    public array $CACHE = [];
+
     public function init(): void
     {
         $this->registerCss();
@@ -87,6 +90,7 @@ class ImageCacheExtension extends Minz_Extension
 
         $doc = self::loadContentAsDOM($content);
         self::handleImages($doc,
+            "display",
             [$this, "getCachedUrl"],
             [$this, "getCachedSetUrl"],
             [$this, "getCachedUrl"]
@@ -103,6 +107,7 @@ class ImageCacheExtension extends Minz_Extension
 
         $doc = self::loadContentAsDOM($content);
         self::handleImages($doc,
+            "insert",
             [$this, "uploadUrl"],
             [$this, "uploadSetUrls"],
             [$this, "uploadUrl"]
@@ -118,7 +123,7 @@ class ImageCacheExtension extends Minz_Extension
         }
     }
 
-    private function handleImages(DOMDocument $doc, callable $imgCallback, callable $imgSetCallback, callable $videoCallback): void
+    private function handleImages(DOMDocument $doc, string $source, callable $imgCallback, callable $imgSetCallback, callable $videoCallback): void
     {
         $images = $doc->getElementsByTagName("img");
         foreach ($images as $image) {
@@ -128,31 +133,31 @@ class ImageCacheExtension extends Minz_Extension
                     continue;
                 }
 
-                Minz_Log::debug("ImageCache: found image $src");
+                Minz_Log::debug("ImageCache[$source]: found image $src");
                 $result = $imgCallback($src);
                 if ($result) {
                     $image->setAttribute("previous-src", $src);
                     $image->setAttribute("src", $result);
-                    Minz_Log::debug("ImageCache: replaced with $result");
+                    Minz_Log::debug("ImageCache[$source]: replaced with $result");
                 }
             }
             if ($image->hasAttribute("srcset")) {
                 $srcSet = $image->getAttribute("srcset");
-                Minz_Log::debug("ImageCache: found image set $srcSet");
+                Minz_Log::debug("ImageCache[$source]: found image set $srcSet");
                 $result = preg_replace_callback("/(?:([^\s,]+)(\s*(?:\s+\d+[wx])(?:,\s*)?))/", $imgSetCallback, $srcSet);
                 $result = array_filter($result);
                 if ($result) {
                     $image->setAttribute("previous-srcset", $srcSet);
                     $image->setAttribute("srcset", $result);
                     $this->addClass($image, "cache-image");
-                    Minz_Log::debug("ImageCache: replaced with $result");
+                    Minz_Log::debug("ImageCache[$source]: replaced with $result");
                 }
             }
         }
 
         $videos = $doc->getElementsByTagName("video");
         foreach ($videos as $video) {
-            Minz_Log::debug("ImageCache: found video");
+            Minz_Log::debug("ImageCache[$source]: found video");
 
             if (!$video->hasAttribute("controls")) {
                 $video->setAttribute('controls', 'true');
@@ -168,13 +173,13 @@ class ImageCacheExtension extends Minz_Extension
                 }
 
                 $src = $source->getAttribute("src");
-                Minz_Log::debug("ImageCache: found video source $src");
+                Minz_Log::debug("ImageCache[$source]: found video source $src");
                 $result = $videoCallback($src);
                 if ($result) {
                     $source->setAttribute("previous-src", $src);
                     $source->setAttribute("src", $result);
                     $this->addClass($video, "cache-image");
-                    Minz_Log::debug("ImageCache: replaced with $result");
+                    Minz_Log::debug("ImageCache[$source]: replaced with $result");
                 }
             }
         }
@@ -190,7 +195,7 @@ class ImageCacheExtension extends Minz_Extension
                 continue;
             }
 
-            Minz_Log::debug("ImageCache: found link $href");
+            Minz_Log::debug("ImageCache[$source]: found link $href");
             $result = $imgCallback($href);
             if (!$result) {
                 continue;
@@ -278,6 +283,9 @@ class ImageCacheExtension extends Minz_Extension
 
     private function isUrlCached(string $url): bool
     {
+        if ($this->isCachedOnRemote($url)) {
+            return true;
+        }
         $encoded_url = rawurlencode($url);
         $cache_url = FreshRSS_Context::$user_conf->image_cache_url . $encoded_url;
 
@@ -291,6 +299,7 @@ class ImageCacheExtension extends Minz_Extension
         if ($code == 404) {
             return false;
         }
+        $this->setCachedOnRemote($url);
         return true;
     }
 
@@ -301,6 +310,9 @@ class ImageCacheExtension extends Minz_Extension
 
     private function uploadUrl(string $to_cache_cache_url): void
     {
+        if ($this->isCachedOnRemote($to_cache_cache_url)) {
+            return;
+        }
         self::postUrl(FreshRSS_Context::$user_conf->image_cache_post_url, [
             "access_token" => FreshRSS_Context::$user_conf->image_cache_access_token,
             "url" => $to_cache_cache_url
@@ -375,5 +387,19 @@ class ImageCacheExtension extends Minz_Extension
             return true;
         }
         return false;
+    }
+
+    private function isCachedOnRemote(string $url): bool
+    {
+        return array_key_exists($url, $this->CACHE);
+    }
+
+    private function setCachedOnRemote(string $url): void
+    {
+        $count = count($this->CACHE);
+        if ($count >= self::MAX_CACHED) {
+            array_shift($this->CACHE);
+        }
+        $this->CACHE[] = $url;
     }
 }
