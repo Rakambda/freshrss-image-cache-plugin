@@ -425,10 +425,7 @@ class Cache
         $file_name = $this->get_filename($url);
         $file_size = filesize($file_name);
 
-        $file_info = finfo_open(FILEINFO_MIME);
-        $content_type = finfo_file($file_info, $file_name);
-        finfo_close($file_info);
-
+        $content_type = mime_content_type($file_name);
         return new CacheHit(true, $file_name, $file_size, $content_type);
     }
 
