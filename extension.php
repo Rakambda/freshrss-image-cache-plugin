@@ -200,30 +200,7 @@ class ImageCacheExtension extends Minz_Extension
         $audios = $doc->getElementsByTagName("audio");
         foreach ($audios as $audio) {
             Minz_Log::debug("ImageCache[$callSource]: Found audio");
-
-            if (!$audio->hasAttribute("controls")) {
-                $audio->setAttribute('controls', 'true');
-            }
-
-            foreach ($audio->childNodes as $source) {
-                if ($source->nodeName == 'source') {
-                    if (!$source->hasAttribute("src")) {
-                        continue;
-                    }
-
-                    $src = $source->getAttribute("src");
-                    Minz_Log::debug("ImageCache[$callSource]: Found audio source $src");
-                    $result = $videoCallback($src);
-                    if ($result) {
-                        $source->setAttribute("previous-src", $src);
-                        $source->setAttribute("src", $result);
-                        $this->addClass($audio, "cache-image");
-                        Minz_Log::debug("ImageCache[$callSource]: Replaced with $result");
-                    } else {
-                        Minz_Log::debug("ImageCache[$callSource]: Failed replacing audio source");
-                    }
-                }
-            }
+            $audio->parentNode->removeChild($audio);
         }
 
         $links = $doc->getElementsByTagName("a");
