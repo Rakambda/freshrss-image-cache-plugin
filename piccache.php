@@ -554,7 +554,7 @@ try {
         http_response_code(405);
     }
 } catch (Exception $e) {
-    http_response_code(500);
+    header("Content-Type: text/plain", 500);
     print_r($e);
 }
 exit();
