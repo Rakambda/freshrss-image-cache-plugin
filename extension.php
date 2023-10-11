@@ -168,8 +168,8 @@ class ImageCacheExtension extends Minz_Extension
             }
         }
 
-        $videos = $doc->getElementsByTagName("video");
-        foreach ($videos as $video) {
+        $audios = $doc->getElementsByTagName("video");
+        foreach ($audios as $video) {
             Minz_Log::debug("ImageCache[$callSource]: Found video");
 
             if (!$video->hasAttribute("controls")) {
@@ -177,24 +177,51 @@ class ImageCacheExtension extends Minz_Extension
             }
 
             foreach ($video->childNodes as $source) {
-                if ($source->nodeName != 'source') {
-                    continue;
-                }
+                if ($source->nodeName == 'source') {
+                    if (!$source->hasAttribute("src")) {
+                        continue;
+                    }
 
-                if (!$source->hasAttribute("src")) {
-                    continue;
+                    $src = $source->getAttribute("src");
+                    Minz_Log::debug("ImageCache[$callSource]: Found video source $src");
+                    $result = $videoCallback($src);
+                    if ($result) {
+                        $source->setAttribute("previous-src", $src);
+                        $source->setAttribute("src", $result);
+                        $this->addClass($video, "cache-image");
+                        Minz_Log::debug("ImageCache[$callSource]: Replaced with $result");
+                    } else {
+                        Minz_Log::debug("ImageCache[$callSource]: Failed replacing video source");
+                    }
                 }
+            }
+        }
 
-                $src = $source->getAttribute("src");
-                Minz_Log::debug("ImageCache[$callSource]: Found video source $src");
-                $result = $videoCallback($src);
-                if ($result) {
-                    $source->setAttribute("previous-src", $src);
-                    $source->setAttribute("src", $result);
-                    $this->addClass($video, "cache-image");
-                    Minz_Log::debug("ImageCache[$callSource]: Replaced with $result");
-                } else {
-                    Minz_Log::debug("ImageCache[$callSource]: Failed replacing video source");
+        $audios = $doc->getElementsByTagName("audio");
+        foreach ($audios as $audio) {
+            Minz_Log::debug("ImageCache[$callSource]: Found audio");
+
+            if (!$audio->hasAttribute("controls")) {
+                $audio->setAttribute('controls', 'true');
+            }
+
+            foreach ($audio->childNodes as $source) {
+                if ($source->nodeName == 'source') {
+                    if (!$source->hasAttribute("src")) {
+                        continue;
+                    }
+
+                    $src = $source->getAttribute("src");
+                    Minz_Log::debug("ImageCache[$callSource]: Found audio source $src");
+                    $result = $videoCallback($src);
+                    if ($result) {
+                        $source->setAttribute("previous-src", $src);
+                        $source->setAttribute("src", $result);
+                        $this->addClass($audio, "cache-image");
+                        Minz_Log::debug("ImageCache[$callSource]: Replaced with $result");
+                    } else {
+                        Minz_Log::debug("ImageCache[$callSource]: Failed replacing audio source");
+                    }
                 }
             }
         }
