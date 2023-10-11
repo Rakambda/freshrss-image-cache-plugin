@@ -16,6 +16,22 @@ const HASH_SUBFOLDER_COUNT = 3;
 # define("CACHE_PLACE_PATH", "/var/www/html/directory");
 # Remember to set correct privileges allowing PHP access.
 
+$logFile = __DIR__ . "/app/www/data/users/_/piccache_error.log";
+if (!file_exists($logFile)) {
+    touch($logFile);
+}
+
+if (filesize($logFile) >= 1048576) { // 10Mb
+    $fp = fopen($logFile, "w");
+    fclose($fp);
+}
+
+ini_set("log_errors", 1);
+ini_set("log_errors_max_len", 2048);
+ini_set("error_log", $logFile);
+error_reporting(E_ALL);
+ini_set('display_errors', '0');
+
 class Config
 {
     private static $config;
@@ -481,59 +497,64 @@ function reply_video(CacheHit $cache_hit)
     print($data);
 }
 
-$cache = new Cache();
+try {
+    $cache = new Cache();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $post_data = json_decode(file_get_contents('php://input'), true);
-    if (!$post_data || !array_key_exists("url", $post_data)) {
-        end_wrong_query();
-    }
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $post_data = json_decode(file_get_contents('php://input'), true);
+        if (!$post_data || !array_key_exists("url", $post_data)) {
+            end_wrong_query();
+        }
 
-    $fetchHit = $cache->store_in_cache($post_data['url']);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($fetchHit) . PHP_EOL;
+        $fetchHit = $cache->store_in_cache($post_data['url']);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($fetchHit) . PHP_EOL;
 
-} elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $url = $_GET['url'];
-    if (!$url) {
-        end_wrong_query();
-    }
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        $url = $_GET['url'];
+        if (!$url) {
+            end_wrong_query();
+        }
 
-    $cache_hit = $cache->get_cached_data($url);
-    if (!$cache_hit->fetched) {
-        header('X-Piccache-Status: MISS');
-        header("Location: $url", true, 302);
-        exit();
-    } else {
-        if (str_starts_with($cache_hit->content_type, 'video/')) {
-            reply_video($cache_hit);
+        $cache_hit = $cache->get_cached_data($url);
+        if (!$cache_hit->fetched) {
+            header('X-Piccache-Status: MISS');
+            header("Location: $url", true, 302);
+            exit();
         } else {
-            header("X-Piccache-Status: HIT");
+            if (str_starts_with($cache_hit->content_type, 'video/')) {
+                reply_video($cache_hit);
+            } else {
+                header("X-Piccache-Status: HIT");
+                header("X-Piccache-File: $cache_hit->filename");
+                header("Content-Type: $cache_hit->content_type");
+                header("Content-Length: $cache_hit->length");
+                fpassthru(fopen($cache_hit->filename, 'rb'));
+            }
+        }
+
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'HEAD') {
+        $url = $_GET['url'];
+        if (!$url) {
+            end_wrong_query();
+        }
+
+        $cache_hit = $cache->get_cached_data($url);
+        if (!$cache_hit->fetched) {
+            header('X-Piccache-Status: MISS', 404);
+            exit();
+        } else {
+            header('X-Piccache-Status: HIT');
             header("X-Piccache-File: $cache_hit->filename");
             header("Content-Type: $cache_hit->content_type");
-            header("Content-Length: $cache_hit->length");
-            fpassthru(fopen($cache_hit->filename, 'rb'));
+            header("Content-Length: $cache_hit->length", 204);
         }
-    }
 
-} elseif ($_SERVER['REQUEST_METHOD'] === 'HEAD') {
-    $url = $_GET['url'];
-    if (!$url) {
-        end_wrong_query();
-    }
-
-    $cache_hit = $cache->get_cached_data($url);
-    if (!$cache_hit->fetched) {
-        header('X-Piccache-Status: MISS', 404);
-        exit();
     } else {
-        header('X-Piccache-Status: HIT');
-        header("X-Piccache-File: $cache_hit->filename");
-        header("Content-Type: $cache_hit->content_type");
-        header("Content-Length: $cache_hit->length", 204);
+        http_response_code(405);
     }
-
-} else {
-    http_response_code(405);
+} catch (Exception $e) {
+    http_response_code(500);
+    print_r($e);
 }
 exit();
