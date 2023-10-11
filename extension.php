@@ -201,12 +201,6 @@ class ImageCacheExtension extends Minz_Extension
             }
         }
 
-        $audios = $doc->getElementsByTagName("audio");
-        foreach ($audios as $audio) {
-            Minz_Log::debug("ImageCache[$callSource]: Found audio");
-            $audio->parentNode->removeChild($audio);
-        }
-
         $links = $doc->getElementsByTagName("a");
         foreach ($links as $link) {
             if (!$link->hasAttribute("href")) {
