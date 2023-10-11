@@ -386,9 +386,15 @@ class Cache
 
         [$content, $headers] = $this->get_link_content($url);
         if (!$content) {
-            preg_match('/\d{3}/', $http_response_header[0], $matches);
-            $response_code = intval($matches[0]);
-            if ($response_code == 404) {
+            $response_code = -1;
+            if ($headers) {
+                preg_match('/\d{3}/', $headers[0], $matches);
+                if ($matches) {
+                    $response_code = intval($matches[0]);
+                }
+            }
+
+            if ($response_code == -1 || $response_code == 404) {
                 return new FetchHit(true, false, headers: $headers, comment: 'Got 404');
             }
 
