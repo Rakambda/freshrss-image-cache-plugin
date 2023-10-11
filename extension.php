@@ -56,9 +56,13 @@ class ImageCacheExtension extends Minz_Extension
     private function registerCss(): void
     {
         $current_user = Minz_Session::param('currentUser');
-        $css_filename = join_path($this->getPath(), 'static', "style.{$current_user}.css");
-        file_put_contents($css_filename, "img.cache-image, video.cache-image {min-height: 100px; min-width: 100px; background-color: red;}");
-        Minz_View::appendStyle($this->getFileUrl($css_filename, 'css'));
+        $css_file_name = "style.{$current_user}.css";
+        $css_file_path = join_path($this->getPath(), 'static', $css_file_name);
+        file_put_contents($css_file_path, "img.cache-image, video.cache-image {min-height: 100px; min-width: 100px; background-color: red;}");
+
+        if (file_exists($css_file_path)) {
+            Minz_View::appendStyle($this->getFileUrl($css_file_name, 'css'));
+        }
     }
 
     public function handleConfigureAction(): void
