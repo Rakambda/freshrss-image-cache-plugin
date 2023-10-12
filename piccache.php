@@ -497,7 +497,7 @@ function reply_video(CacheHit $cache_hit)
     header("X-Piccache-File: $cache_hit->filename");
     header("Content-Type: $cache_hit->content_type");
     header("Content-Length: $filesize");
-    header("Content-Disposition: attachment; filename=\"$filename\"");
+    header("Content-Disposition: inline; filename=\"$filename\"");
     header("Accept-Ranges: bytes");
 
     print($data);
