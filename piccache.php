@@ -474,7 +474,8 @@ function reply_video(CacheHit $cache_hit)
         preg_match('/bytes=(\d+)-(\d+)?/', $_SERVER['HTTP_RANGE'], $matches);
 
         $offset = intval($matches[1]);
-        $length = (($matches[2]) ? intval($matches[2]) : $filesize) - $offset;
+        $end = (isset($matches[2]) && $matches[2]) ? intval($matches[2]) : $filesize;
+        $length = $end - $offset;
     } else {
         $partialContent = false;
     }
