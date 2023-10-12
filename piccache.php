@@ -490,11 +490,13 @@ function reply_video(CacheHit $cache_hit)
         header("Content-Range: bytes $offset-$bytes_length/$filesize");
     }
 
+    $filename = pathinfo($cache_hit->filename, PATHINFO_BASENAME);
+
     header("X-Piccache-Status: HIT");
     header("X-Piccache-File: $cache_hit->filename");
     header("Content-Type: $cache_hit->content_type");
     header("Content-Length: $filesize");
-    header("Content-Disposition: attachment; filename=\"$file\"");
+    header("Content-Disposition: attachment; filename=\"$filename\"");
     header("Accept-Ranges: bytes");
 
     print($data);
