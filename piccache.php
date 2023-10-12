@@ -16,7 +16,7 @@ const HASH_SUBFOLDER_COUNT = 3;
 # define("CACHE_PLACE_PATH", "/var/www/html/directory");
 # Remember to set correct privileges allowing PHP access.
 
-$logFile = __DIR__ . "/app/www/data/users/_/piccache_error.log";
+$logFile = "/app/www/data/users/_/piccache_error.log";
 if (!file_exists($logFile)) {
     touch($logFile);
 }
