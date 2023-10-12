@@ -1,36 +1,30 @@
 <?php
 
-//error_reporting(E_ALL);
-//ini_set('display_errors', 'On');
-
 use JetBrains\PhpStorm\NoReturn;
 
 const CACHE_PLACE_PATH = "/cache";
 const CONFIG_PATH = "/cache/config.json";
 const CACHE_FOLDER_NAME = 'piccache';
 const HASH_SUBFOLDER_COUNT = 3;
+const ENABLE_DEBUGGING = false;
 
-# define("CACHE_PLACE_PATH", sys_get_temp_dir());
-# Also possible:
-# define("CACHE_PLACE_PATH", "C:\\your\\Directory");
-# define("CACHE_PLACE_PATH", "/var/www/html/directory");
-# Remember to set correct privileges allowing PHP access.
+if (ENABLE_DEBUGGING) {
+    $logFile = "/app/www/data/users/_/piccache_error.log";
+    if (!file_exists($logFile)) {
+        touch($logFile);
+    }
 
-$logFile = "/app/www/data/users/_/piccache_error.log";
-if (!file_exists($logFile)) {
-    touch($logFile);
+    if (filesize($logFile) >= 1048576) { // 10Mb
+        $fp = fopen($logFile, "w");
+        fclose($fp);
+    }
+
+    ini_set("log_errors", 1);
+    ini_set("log_errors_max_len", 2048);
+    ini_set("error_log", $logFile);
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
 }
-
-if (filesize($logFile) >= 1048576) { // 10Mb
-    $fp = fopen($logFile, "w");
-    fclose($fp);
-}
-
-ini_set("log_errors", 1);
-ini_set("log_errors_max_len", 2048);
-ini_set("error_log", $logFile);
-error_reporting(E_ALL);
-ini_set('display_errors', '1');
 
 class Config
 {
