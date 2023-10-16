@@ -173,7 +173,7 @@ class Cache
     private function get_filename_extension(string $url, string $store_filename): string
     {
         $path_extension = pathinfo($store_filename, PATHINFO_EXTENSION);
-        if (!$this->isRedgifs($url) && array_key_exists($path_extension, $this->extensions)) {
+        if (!$this->isRedgifs($url) && !$this->isVidble($url) && array_key_exists($path_extension, $this->extensions)) {
             return $this->map_extension($path_extension);
         }
 
@@ -184,6 +184,9 @@ class Cache
         }
 
         if ($this->isRedgifs($url)) {
+            return $this->map_extension('mp4');
+        }
+        if ($this->isVidble($url)) {
             return $this->map_extension('mp4');
         }
 
@@ -287,6 +290,12 @@ class Cache
                 return [false, []];
             }
         }
+        if ($this->isVidble($url)) {
+            $url = $this->get_vidble_url($url);
+            if (!$url) {
+                return [false, []];
+            }
+        }
         if ($this->isImgur($url)) {
             $url = $this->get_imgur_url($url);
             if (!$url) {
@@ -323,6 +332,16 @@ class Cache
             return null;
         }
         return $json_response['gif']['urls']['hd'];
+    }
+
+    private function get_vidble_url(string $url): ?string
+    {
+        preg_match('/watch\\?v=([a-zA-Z0-9]+)/', $url, $matches);
+        if ($matches && isset($matches[1])) {
+            $video_id = $matches[1];
+            return "https://www.vidble.com/$video_id.mp4";
+        }
+        return null;
     }
 
     private function get_imgur_url(string $url): ?string
@@ -364,6 +383,12 @@ class Cache
     {
         $parsed_url = parse_url($url);
         return str_contains($parsed_url['host'], 'redgifs.com');
+    }
+
+    private function isVidble(string $url): bool
+    {
+        $parsed_url = parse_url($url);
+        return str_contains($parsed_url['host'], 'vidble.com');
     }
 
     private function isImgur(string $url): bool

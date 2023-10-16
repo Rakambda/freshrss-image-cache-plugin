@@ -419,10 +419,9 @@ class ImageCacheExtension extends Minz_Extension
     private function isVideoLink(string $src): bool
     {
         $parsed_url = parse_url($src);
-        if (str_contains($parsed_url['host'], 'redgifs.com')) {
-            return true;
-        }
-        if (str_ends_with($parsed_url['path'], ".gifv")) {
+        if (str_contains($parsed_url['host'], 'redgifs.com')
+            || str_contains($parsed_url['host'], 'vidble.com')
+            || str_ends_with($parsed_url['path'], ".gifv")) {
             return true;
         }
         return false;
