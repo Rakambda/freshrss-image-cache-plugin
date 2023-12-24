@@ -28,7 +28,7 @@ if (ENABLE_DEBUGGING) {
 
 class Config
 {
-    private static $config;
+    private static array $config;
 
     public static function get_config(): array
     {
@@ -69,10 +69,10 @@ class Config
 
 class CacheHit
 {
-    public $fetched;
-    public $length;
-    public $filename;
-    public $content_type;
+    public bool $fetched;
+    public ?int $length;
+    public ?string $filename;
+    public ?string $content_type;
 
     public function __construct(bool $fetched = false, ?string $filename = null, ?int $length = 0, ?string $content_type = null)
     {
@@ -85,11 +85,11 @@ class CacheHit
 
 class FetchHit
 {
-    public $cached;
-    public $fetched;
-    public $filename;
-    public $headers;
-    public $comment;
+    public bool $cached;
+    public bool $fetched;
+    public ?string $filename;
+    public ?array $headers;
+    public ?string $comment;
 
     public function __construct(bool $cached = false, bool $fetched = false, ?string $filename = null, ?array $headers = [], ?string $comment = null)
     {
@@ -144,8 +144,8 @@ class Cache
         $store_filename = explode('?', pathinfo($url, PATHINFO_BASENAME))[0];
         $store_extension = $this->get_filename_extension($url, $store_filename);
 
-        if (!str_ends_with(".${store_filename}", $store_extension)) {
-            $store_filename = "${store_filename}.${store_extension}";
+        if (!str_ends_with(".$store_filename", $store_extension)) {
+            $store_filename = "$store_filename.$store_extension";
         }
 
         $url_hash = $this->get_url_hash($url);
@@ -482,7 +482,7 @@ function end_wrong_query(): void
     exit();
 }
 
-function reply_video(CacheHit $cache_hit)
+function reply_video(CacheHit $cache_hit): void
 {
     $filesize = $cache_hit->length;
     $length = $filesize;
