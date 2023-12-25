@@ -528,6 +528,7 @@ try {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $post_data = json_decode(file_get_contents('php://input'), true);
         if (!$post_data || !array_key_exists("url", $post_data)) {
+            header("X-Piccache-Error: No URL provided");
             end_wrong_query();
         }
 
@@ -538,6 +539,7 @@ try {
     } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $url = $_GET['url'];
         if (!$url) {
+            header("X-Piccache-Error: No URL provided");
             end_wrong_query();
         }
 
@@ -561,6 +563,7 @@ try {
     } elseif ($_SERVER['REQUEST_METHOD'] === 'HEAD') {
         $url = $_GET['url'];
         if (!$url) {
+            header("X-Piccache-Error: No URL provided");
             end_wrong_query();
         }
 
@@ -579,6 +582,7 @@ try {
         http_response_code(405);
     }
 } catch (Exception $e) {
+    header("X-Piccache-Error: Uncaught exception");
     header("Content-Type: text/plain", response_code: 500);
     error_log($e);
 }
