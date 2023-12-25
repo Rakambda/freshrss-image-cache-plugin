@@ -580,6 +580,6 @@ try {
     }
 } catch (Exception $e) {
     header("Content-Type: text/plain", response_code: 500);
-    print_r($e);
+    error_log($e);
 }
 exit();
