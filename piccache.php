@@ -28,7 +28,7 @@ if (ENABLE_DEBUGGING) {
 
 class Config
 {
-    private static array $config;
+    private static ?array $config = null;
 
     public static function get_config(): array
     {
