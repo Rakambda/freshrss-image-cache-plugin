@@ -62,7 +62,14 @@ class ImageCacheExtension extends Minz_Extension
         $current_user = Minz_Session::paramString('currentUser');
         $css_file_name = "style.{$current_user}.css";
         $css_file_path = join(DIRECTORY_SEPARATOR, [$this->getPath(), 'static', $css_file_name]);
-        file_put_contents($css_file_path, "img.cache-image, video.cache-image {min-height: 100px; min-width: 100px; background-color: red;}");
+        file_put_contents($css_file_path, <<<EOT
+img.cache-image, video.cache-image {
+    min-width: 100px;
+    min-height: 100px;
+    max-height: 100vh;
+    background-color: red;
+}
+EOT);
 
         if (file_exists($css_file_path)) {
             Minz_View::appendStyle($this->getFileUrl($css_file_name, 'css'));
@@ -179,6 +186,7 @@ class ImageCacheExtension extends Minz_Extension
                 if ($result) {
                     $image->setAttribute("previous-src", $src);
                     $image->setAttribute("src", $result);
+                    $this->addClass($image, "cache-image");
                     Minz_Log::debug("ImageCache[$callSource]: Replaced image with $result");
                 } else {
                     Minz_Log::debug("ImageCache[$callSource]: Failed replacing image");
