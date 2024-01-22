@@ -195,7 +195,7 @@ EOT
 
                     if ($this->isVideoLink($src)) {
                         $this->appendVideo($doc, $image, $src, $result);
-                        $image->parentNode->removeChild($image);
+//                        $image->parentNode->removeChild($image);
                     }
                 } else {
                     Minz_Log::debug("ImageCache[$callSource]: Failed replacing image");
