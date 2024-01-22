@@ -69,7 +69,8 @@ img.cache-image, video.cache-image {
     max-height: 100vh;
     background-color: red;
 }
-EOT);
+EOT
+        );
 
         if (file_exists($css_file_path)) {
             Minz_View::appendStyle($this->getFileUrl($css_file_name, 'css'));
@@ -341,13 +342,17 @@ EOT);
      */
     private function getCachedUrl(string $url): string
     {
+        $image_cache_url = FreshRSS_Context::userConf()->param("image_cache_url");
+        if (str_starts_with($url, $image_cache_url)) {
+            return $url;
+        }
         if ($this->isRecache($url) && !$this->isUrlCached($url)) {
             Minz_Log::debug("ImageCache: Re-caching $url");
             $this->uploadUrl($url);
         }
 
         $encoded_url = rawurlencode($url);
-        return FreshRSS_Context::userConf()->param("image_cache_url") . $encoded_url;
+        return $image_cache_url . $encoded_url;
     }
 
     /**
@@ -489,7 +494,7 @@ EOT);
     private function isVideoLink(string $src): bool
     {
         $parsed_url = parse_url($src);
-        
+
         if (isset($parsed_url['host'])) {
             $host = $parsed_url['host'];
             if (str_contains($host, 'redgifs.com')
@@ -498,7 +503,7 @@ EOT);
                 return true;
             }
         }
-        
+
         if (isset($parsed_url['path'])) {
             $path = $parsed_url['path'];
             if (str_ends_with($path, ".gifv")) {
@@ -508,7 +513,7 @@ EOT);
                 return true;
             }
         }
-        
+
         return false;
     }
 
