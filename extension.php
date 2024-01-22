@@ -173,6 +173,9 @@ EOT);
         Minz_Log::debug("ImageCache[$callSource]: Scanning new document");
 
         $images = $doc->getElementsByTagName("img");
+        $videos = $doc->getElementsByTagName("video");
+        $links = $doc->getElementsByTagName("a");
+
         foreach ($images as $image) {
             if ($image->hasAttribute("src")) {
                 $src = $image->getAttribute("src");
@@ -213,8 +216,7 @@ EOT);
             }
         }
 
-        $audios = $doc->getElementsByTagName("video");
-        foreach ($audios as $video) {
+        foreach ($videos as $video) {
             Minz_Log::debug("ImageCache[$callSource]: Found video");
 
             if (!$video->hasAttribute("controls")) {
@@ -242,7 +244,6 @@ EOT);
             }
         }
 
-        $links = $doc->getElementsByTagName("a");
         foreach ($links as $link) {
             if (!$link->hasAttribute("href")) {
                 continue;
