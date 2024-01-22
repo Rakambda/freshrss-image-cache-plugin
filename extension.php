@@ -188,6 +188,11 @@ EOT);
                     $image->setAttribute("src", $result);
                     $this->addClass($image, "cache-image");
                     Minz_Log::debug("ImageCache[$callSource]: Replaced image with $result");
+
+                    if ($this->isVideoLink($src)) {
+                        $this->appendVideo($doc, $image, $src, $result);
+                        $image->parentNode->removeChild($image);
+                    }
                 } else {
                     Minz_Log::debug("ImageCache[$callSource]: Failed replacing image");
                 }
