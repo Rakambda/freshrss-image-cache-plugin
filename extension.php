@@ -503,6 +503,9 @@ EOT);
             if (str_ends_with($path, ".gifv")) {
                 return true;
             }
+            if (str_ends_with($path, ".mp4")) {
+                return true;
+            }
         }
         
         return false;
