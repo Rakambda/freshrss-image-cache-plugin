@@ -66,7 +66,7 @@ class ImageCacheExtension extends Minz_Extension
 img.cache-image, video.cache-image {
     min-width: 100px;
     min-height: 100px;
-    max-height: 100vh;
+    max-height: 50vh;
     background-color: red;
 }
 EOT
