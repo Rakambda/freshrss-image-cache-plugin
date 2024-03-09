@@ -499,6 +499,7 @@ EOT
             $host = $parsed_url['host'];
             if (str_contains($host, 'redgifs.com')
                 || str_contains($host, 'vidble.com')
+                || str_contains($host, 'video.twimg.com')
             ) {
                 return true;
             }
@@ -506,10 +507,9 @@ EOT
 
         if (isset($parsed_url['path'])) {
             $path = $parsed_url['path'];
-            if (str_ends_with($path, ".gifv")) {
-                return true;
-            }
-            if (str_ends_with($path, ".mp4")) {
+            if (str_ends_with($path, ".gifv")
+                || str_ends_with($path, ".mp4")
+            ) {
                 return true;
             }
         }
@@ -520,10 +520,9 @@ EOT
     private function isImageLink(string $src): bool
     {
         $parsed_url = parse_url($src);
-        if (str_contains($parsed_url['host'], 'imgur.com')) {
-            return true;
-        }
-        if (str_contains($parsed_url['host'], 'i.redd.it')) {
+        if (str_contains($parsed_url['host'], 'imgur.com')
+            || str_contains($parsed_url['host'], 'i.redd.it')
+        ) {
             return true;
         }
         return false;
