@@ -224,6 +224,25 @@ EOT
                 $video->setAttribute('controls', 'true');
             }
 
+            if ($video->hasAttribute("src")) {
+                $src = $image->getAttribute("src");
+                if ($this->isDisabled($src)) {
+                    Minz_Log::debug("ImageCache[$callSource]: Found disabled video $src");
+                    continue;
+                }
+
+                Minz_Log::debug("ImageCache[$callSource]: Found video source $src");
+                $result = $videoCallback($src);
+                if ($result) {
+                    $video->setAttribute("previous-src", $src);
+                    $video->setAttribute("src", $result);
+                    $this->addClass($video, "cache-image");
+                    Minz_Log::debug("ImageCache[$callSource]: Replaced with $result");
+                } else {
+                    Minz_Log::debug("ImageCache[$callSource]: Failed replacing video src");
+                }
+            }
+
             foreach ($video->childNodes as $source) {
                 if ($source->nodeName == 'source') {
                     if (!$source->hasAttribute("src")) {
@@ -231,6 +250,11 @@ EOT
                     }
 
                     $src = $source->getAttribute("src");
+                    if ($this->isDisabled($src)) {
+                        Minz_Log::debug("ImageCache[$callSource]: Found disabled video $src");
+                        continue;
+                    }
+
                     Minz_Log::debug("ImageCache[$callSource]: Found video source $src");
                     $result = $videoCallback($src);
                     if ($result) {
@@ -253,6 +277,10 @@ EOT
 
             if (!$this->isImageLink($href) && !$this->isVideoLink($href)) {
                 Minz_Log::debug("ImageCache[$callSource]: Found skipped link $href");
+                continue;
+            }
+            if ($this->isDisabled($href)) {
+                Minz_Log::debug("ImageCache[$callSource]: Found disabled link $href");
                 continue;
             }
 
