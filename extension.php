@@ -527,7 +527,6 @@ EOT
             $host = $parsed_url['host'];
             if (str_contains($host, 'redgifs.com')
                 || str_contains($host, 'vidble.com')
-                || str_contains($host, 'video.twimg.com')
             ) {
                 return true;
             }
