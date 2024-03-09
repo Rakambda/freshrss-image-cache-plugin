@@ -225,7 +225,7 @@ EOT
             }
 
             if ($video->hasAttribute("src")) {
-                $src = $image->getAttribute("src");
+                $src = $video->getAttribute("src");
                 if ($this->isDisabled($src)) {
                     Minz_Log::debug("ImageCache[$callSource]: Found disabled video $src");
                     continue;
