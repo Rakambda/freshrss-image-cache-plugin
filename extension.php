@@ -221,7 +221,10 @@ EOT
             Minz_Log::debug("ImageCache[$callSource]: Found video");
 
             if (!$video->hasAttribute("controls")) {
-                $video->setAttribute('controls', 'true');
+                $video->setAttribute("controls", "true");
+            }
+            if ($video->hasAttribute("loop")) {
+                $video->removeAttribute("loop");
             }
 
             if ($video->hasAttribute("src")) {
