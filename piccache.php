@@ -285,7 +285,7 @@ class Cache
         $user_agent = Config::get_user_agent();
 
         if ($this->isRedgifs($url)) {
-            $url = $this->get_redgifs_url($url);
+            $url = $this->get_redgifs_url_from_m3u8($url);
             if (!$url) {
                 return [false, []];
             }
@@ -310,7 +310,7 @@ class Cache
         return [$content, $http_response_header];
     }
 
-    private function get_redgifs_url(string $url): ?string
+    private function get_redgifs_url_from_api(string $url): ?string
     {
         $parsed_url = parse_url($url);
         $path = $parsed_url['path'];
@@ -332,6 +332,27 @@ class Cache
             return null;
         }
         return $json_response['gif']['urls']['hd'];
+    }
+
+    private function get_redgifs_url_from_m3u8(string $url): ?string
+    {
+        $parsed_url = parse_url($url);
+        $path = $parsed_url['path'];
+        $gif_id = basename($path);
+
+        $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id/hd.m3u8");
+        if (!$api_response) {
+            return null;
+        }
+
+        $pm = array();
+        if (preg_match_all('/^(?!#).*/mi', $api_response, $pm)) {
+            foreach ($pm as $v) {
+                return $v[0];
+            }
+        }
+
+        return null;
     }
 
     private function get_vidble_url(string $url): ?string
