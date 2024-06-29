@@ -340,7 +340,13 @@ class Cache
         $path = $parsed_url['path'];
         $gif_id = basename($path);
 
-        $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id/hd.m3u8");
+        $user_agent = Config::get_user_agent();
+        $bearer = Config::get_redgifs_bearer();
+
+        $context = stream_context_create(["http" => [
+            'header' => "Authorization: Bearer $bearer\r\nUser-Agent: $user_agent\r\n"
+        ]]);
+        $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id/hd.m3u8", false, $context);
         if (!$api_response) {
             return null;
         }
@@ -558,6 +564,10 @@ try {
         echo json_encode($fetchHit) . PHP_EOL;
 
     } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+        if(!isset($_GET['url'])){
+            header("X-Piccache-Error: No URL provided");
+            end_wrong_query();
+        }
         $url = $_GET['url'];
         if (!$url) {
             header("X-Piccache-Error: No URL provided");
