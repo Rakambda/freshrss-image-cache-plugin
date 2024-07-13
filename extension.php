@@ -11,8 +11,9 @@ class ImageCacheExtension extends Minz_Extension
 
     public function autoload(string $class_name): void
     {
-        if (0 === strpos($class_name, 'ImageCache')) {
-            $class_name = substr($class_name, 11);
+        $namespaceName = 'ImageCache';
+        if (str_starts_with($class_name, $namespaceName)) {
+            $class_name = substr($class_name, strlen($namespaceName) + 1);
             include $this->getPath() . DIRECTORY_SEPARATOR . str_replace('\\', '/', $class_name) . '.php';
         }
     }
