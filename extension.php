@@ -130,8 +130,7 @@ EOT
         self::handleImages($doc,
             "display",
             [$this, "getCachedUrl"],
-            [$this, "getCachedSetUrl"],
-            [$this, "getCachedUrl"]
+            [$this, "getCachedSetUrl"]
         );
 
         return $doc->saveHTML();
@@ -151,8 +150,7 @@ EOT
         self::handleImages($doc,
             "insert",
             [$this, "uploadUrl"],
-            [$this, "uploadSetUrls"],
-            [$this, "uploadUrl"]
+            [$this, "uploadSetUrls"]
         );
     }
 
@@ -169,7 +167,7 @@ EOT
      * @throws FreshRSS_Context_Exception
      * @throws Minz_ConfigurationParamException
      */
-    private function handleImages(DOMDocument $doc, string $callSource, callable $imgCallback, callable $imgSetCallback, callable $videoCallback): void
+    private function handleImages(DOMDocument $doc, string $callSource, callable $singleElementCallback, callable $imgSetCallback): void
     {
         Minz_Log::debug("ImageCache[$callSource]: Scanning new document");
 
@@ -186,7 +184,7 @@ EOT
                 }
 
                 Minz_Log::debug("ImageCache[$callSource]: Found image $src");
-                $result = $imgCallback($src);
+                $result = $singleElementCallback($src);
                 if ($result) {
                     $image->setAttribute("previous-src", $src);
                     $image->setAttribute("src", $result);
@@ -235,7 +233,7 @@ EOT
                 }
 
                 Minz_Log::debug("ImageCache[$callSource]: Found video source $src");
-                $result = $videoCallback($src);
+                $result = $singleElementCallback($src);
                 if ($result) {
                     $video->setAttribute("previous-src", $src);
                     $video->setAttribute("src", $result);
@@ -259,7 +257,7 @@ EOT
                     }
 
                     Minz_Log::debug("ImageCache[$callSource]: Found video source $src");
-                    $result = $videoCallback($src);
+                    $result = $singleElementCallback($src);
                     if ($result) {
                         $source->setAttribute("previous-src", $src);
                         $source->setAttribute("src", $result);
@@ -288,7 +286,7 @@ EOT
             }
 
             Minz_Log::debug("ImageCache[$callSource]: Found link $href");
-            $result = $imgCallback($href);
+            $result = $singleElementCallback($href);
             if (!$result) {
                 Minz_Log::debug("ImageCache[$callSource]: Failed replacing link");
                 continue;
@@ -375,6 +373,7 @@ EOT
     {
         $image_cache_url = FreshRSS_Context::userConf()->param("image_cache_url");
         if (str_starts_with($url, $image_cache_url)) {
+            Minz_Log::debug("ImageCache: URL $url already starts with $image_cache_url");
             return $url;
         }
         if ($this->isRecache($url) && !$this->isUrlCached($url)) {
