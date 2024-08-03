@@ -145,6 +145,7 @@ EOT
     /**
      * @throws FreshRSS_Context_Exception
      * @throws Minz_ConfigurationParamException
+     * @throws Minz_PermissionDeniedException
      */
     private function handleImages(DOMDocument $doc, string $callSource, callable $singleElementCallback, callable $imgSetCallback): void
     {

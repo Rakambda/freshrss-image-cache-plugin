@@ -27,5 +27,10 @@
     "allow-plugins": {
       "phpstan/extension-installer": true
     }
+  },
+  "require": {
+    "ext-dom": "*",
+    "ext-curl": "*",
+    "ext-libxml": "*"
   }
 }
