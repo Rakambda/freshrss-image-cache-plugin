@@ -528,10 +528,13 @@ EOT
     private function isImageLink(string $src): bool
     {
         $parsed_url = parse_url($src);
-        if (str_contains($parsed_url['host'], 'imgur.com')
-            || str_contains($parsed_url['host'], 'i.redd.it')
-        ) {
-            return true;
+        if (isset($parsed_url['host'])) {
+            $host = $parsed_url['host'];
+            if (str_contains($host, 'imgur.com')
+                || str_contains($host, 'i.redd.it')
+            ) {
+                return true;
+            }
         }
         return false;
     }
