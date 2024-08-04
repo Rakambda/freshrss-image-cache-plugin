@@ -61,7 +61,7 @@ EOT
 
         $defaultVolume = $this->getDefaultVolume();
         file_put_contents($script_file_path, <<<EOT
-document.addEventListener("play", function(e) {
+document.getElementById("stream").addEventListener("play", function(e) {
     if(e.target && e.target.nodeName == "video") {
         e.target.volume = $defaultVolume;
         console.log("Loaded data ", e);
@@ -569,5 +569,8 @@ EOT
     private function addDefaultVideoAttributes(DOMElement $video): void
     {
         $this->addClass($video, "cache-image");
+        if($this->getDefaultVolume() <= 0){
+            $video->setAttribute('muted', 'true');
+        }
     }
 }
