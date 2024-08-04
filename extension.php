@@ -545,7 +545,7 @@ EOT
     private function addDefaultVideoAttributes(DOMElement $video): void
     {
         $defaultVolume = $this->getDefaultVolume();
-        $video->setAttribute("onloadstart", "this.volume=$defaultVolume");
+        $video->setAttribute("onloadeddata", "this.volume=$defaultVolume");
         $this->addClass($video, "cache-image");
     }
 }
