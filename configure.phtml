@@ -1,6 +1,6 @@
 <form action="<?php echo _url('extension', 'configure', 'e', urlencode($this->getName())); ?>" method="post">
 	<input type="hidden" name="_csrf" value="<?php echo FreshRSS_Auth::csrfToken(); ?>" />
-	<h3>User fetch settings</h3>
+	<h3>Display cached settings</h3>
 	<div class="form-group">
 		<label class="group-name" for="image_cache_url"><?php echo _t('ext.imagecache.cache_url'); ?></label>
 		<div class="group-controls">
@@ -19,7 +19,13 @@
             <input type="text" name="image_cache_disabled_url" id="image_cache_disabled_url" value="<?php echo $this->settings->getImageDisabledUrl(); ?>">
         </div>
     </div>
-	<h3>FreshRSS notification settings</h3>
+    <div class="form-group">
+        <label class="group-name" for="video_default_volume"><?php echo _t('ext.imagecache.video_default_volume'); ?></label>
+        <div class="group-controls">
+            <input type="number" step="0.01" min="0" max="1" name="video_default_volume" id="video_default_volume" value="<?php echo $this->settings->$this->settings->getVideoDefaultVolume(); ?>">
+        </div>
+    </div>
+	<h3>Cache host settings</h3>
 	<div class="form-group">
 		<label class="group-name" for="image_cache_post_url"><?php echo _t('ext.imagecache.post_url'); ?></label>
 		<div class="group-controls">

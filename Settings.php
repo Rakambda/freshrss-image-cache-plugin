@@ -9,6 +9,7 @@ class Settings
     const DEFAULT_CACHE_DISABLED_URL = "";
     const DEFAULT_RECACHE_URL = "";
     const DEFAULT_CACHE_ACCESS_TOKEN = "";
+    const DEFAULT_VIDEO_VOLUME = 1;
 
     private array $settings;
 
@@ -60,5 +61,14 @@ class Settings
         }
 
         return self::DEFAULT_RECACHE_URL;
+    }
+
+    public function getVideoDefaultVolume(): float
+    {
+        if (array_key_exists('video_default_volume', $this->settings)) {
+            return (float)$this->settings['video_default_volume'];
+        }
+
+        return self::DEFAULT_VIDEO_VOLUME;
     }
 }

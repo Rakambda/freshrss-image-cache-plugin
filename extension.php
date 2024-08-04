@@ -18,10 +18,6 @@ class ImageCacheExtension extends Minz_Extension
         }
     }
 
-    /**
-     * @throws Minz_ConfigurationParamException
-     * @throws FreshRSS_Context_Exception
-     */
     public function init(): void
     {
         spl_autoload_register([$this, 'autoload']);
@@ -38,7 +34,7 @@ class ImageCacheExtension extends Minz_Extension
     private function registerCss(): void
     {
         $current_user = Minz_Session::paramString('currentUser');
-        $css_file_name = "style.{$current_user}.css";
+        $css_file_name = "style.$current_user.css";
         $css_file_path = join(DIRECTORY_SEPARATOR, [$this->getPath(), 'static', $css_file_name]);
         file_put_contents($css_file_path, <<<EOT
 img.cache-image, video.cache-image {
@@ -55,10 +51,6 @@ EOT
         }
     }
 
-    /**
-     * @throws Minz_ConfigurationParamException
-     * @throws FreshRSS_Context_Exception
-     */
     public function handleConfigureAction(): void
     {
         $this->registerTranslates();
@@ -70,6 +62,7 @@ EOT
                 'image_cache_access_token' => Minz_Request::paramString('image_cache_access_token'),
                 'image_cache_disabled_url' => Minz_Request::paramString('image_cache_disabled_url'),
                 'image_recache_url' => Minz_Request::paramString('image_recache_url'),
+                'video_default_volume' => Minz_Request::paramString('video_default_volume'),
             ];
             $this->setUserConfiguration($configuration);
         }
@@ -78,6 +71,7 @@ EOT
     /**
      * @throws FreshRSS_Context_Exception
      * @throws Minz_ConfigurationParamException
+     * @throws Minz_PermissionDeniedException
      */
     public function content_modification_hook($entry)
     {
@@ -88,6 +82,7 @@ EOT
     /**
      * @throws FreshRSS_Context_Exception
      * @throws Minz_ConfigurationParamException
+     * @throws Minz_PermissionDeniedException
      */
     public function image_upload_hook($entry)
     {
@@ -98,6 +93,7 @@ EOT
     /**
      * @throws FreshRSS_Context_Exception
      * @throws Minz_ConfigurationParamException
+     * @throws Minz_PermissionDeniedException
      */
     private function swapUrls(string $content): string
     {
@@ -118,6 +114,7 @@ EOT
     /**
      * @throws FreshRSS_Context_Exception
      * @throws Minz_ConfigurationParamException
+     * @throws Minz_PermissionDeniedException
      */
     private function uploadUrls(string $content): void
     {
@@ -217,7 +214,7 @@ EOT
                 if ($result) {
                     $video->setAttribute("previous-src", $src);
                     $video->setAttribute("src", $result);
-                    $this->addClass($video, "cache-image");
+                    $this->addDefaultVideoAttributes($video);
                     Minz_Log::debug("ImageCache[$callSource]: Replaced with $result");
                 } else {
                     Minz_Log::debug("ImageCache[$callSource]: Failed replacing video src");
@@ -241,6 +238,7 @@ EOT
                     if ($result) {
                         $source->setAttribute("previous-src", $src);
                         $source->setAttribute("src", $result);
+                        $this->addDefaultVideoAttributes($video);
                         $this->addClass($video, "cache-image");
                         Minz_Log::debug("ImageCache[$callSource]: Replaced with $result");
                     } else {
@@ -292,6 +290,9 @@ EOT
         }
     }
 
+    /**
+     * @throws Minz_PermissionDeniedException
+     */
     private function appendImage(DOMDocument $doc, DOMElement $node, string $originalLink, string $newLink): void
     {
         try {
@@ -307,6 +308,9 @@ EOT
         }
     }
 
+    /**
+     * @throws Minz_PermissionDeniedException
+     */
     private function appendVideo(DOMDocument $doc, DOMElement $node, string $originalLink, string $newLink): void
     {
         try {
@@ -316,7 +320,8 @@ EOT
 
             $video = $doc->createElement('video');
             $video->setAttribute('controls', 'true');
-            $video->setAttribute('class', 'reddit-image cache-image');
+            $video->setAttribute('class', 'reddit-image');
+            $this->addDefaultVideoAttributes($video);
             $video->appendChild($source);
 
             $this->appendAfter($node, $this->wrapElement($doc, $video));
@@ -337,8 +342,7 @@ EOT
     }
 
     /**
-     * @throws FreshRSS_Context_Exception
-     * @throws Minz_ConfigurationParamException
+     * @throws Minz_PermissionDeniedException
      */
     private function getCachedSetUrl(array $matches): string
     {
@@ -346,8 +350,7 @@ EOT
     }
 
     /**
-     * @throws FreshRSS_Context_Exception
-     * @throws Minz_ConfigurationParamException
+     * @throws Minz_PermissionDeniedException
      */
     private function getCachedUrl(string $url): string
     {
@@ -365,10 +368,6 @@ EOT
         return $image_cache_url . $encoded_url;
     }
 
-    /**
-     * @throws FreshRSS_Context_Exception
-     * @throws Minz_ConfigurationParamException
-     */
     private function isUrlCached(string $url): bool
     {
         if ($this->isCachedOnRemote($url)) {
@@ -393,19 +392,11 @@ EOT
         return true;
     }
 
-    /**
-     * @throws FreshRSS_Context_Exception
-     * @throws Minz_ConfigurationParamException
-     */
     private function uploadSetUrls(array $matches): void
     {
         self::uploadUrl($matches[1]);
     }
 
-    /**
-     * @throws FreshRSS_Context_Exception
-     * @throws Minz_ConfigurationParamException
-     */
     private function uploadUrl(string $to_cache_cache_url): void
     {
         if ($this->isCachedOnRemote($to_cache_cache_url)) {
@@ -461,10 +452,6 @@ EOT
         return $doc;
     }
 
-    /**
-     * @throws FreshRSS_Context_Exception
-     * @throws Minz_ConfigurationParamException
-     */
     private function isDisabled(string $src): bool
     {
         $disabledStr = $this->settings->getImageDisabledUrl();
@@ -481,10 +468,6 @@ EOT
         return false;
     }
 
-    /**
-     * @throws FreshRSS_Context_Exception
-     * @throws Minz_ConfigurationParamException
-     */
     private function isRecache(string $src): bool
     {
         $recacheStr = $this->settings->getImageRecacheUrl();
@@ -552,5 +535,17 @@ EOT
             array_shift($this->CACHE);
         }
         $this->CACHE[] = $url;
+    }
+
+    private function getDefaultVolume(): float
+    {
+        return max(0, min(1, $this->settings->getVideoDefaultVolume()));
+    }
+
+    private function addDefaultVideoAttributes(DOMElement $video): void
+    {
+        $defaultVolume = $this->getDefaultVolume();
+        $video->setAttribute("onloadstart", "this.volume=$defaultVolume");
+        $this->addClass($video, "cache-image");
     }
 }
