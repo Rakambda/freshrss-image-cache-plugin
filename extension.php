@@ -22,11 +22,11 @@ class ImageCacheExtension extends Minz_Extension
     {
         spl_autoload_register([$this, 'autoload']);
 
+        $this->settings = new Settings($this->getUserConfiguration());
+
         $this->registerTranslates();
         $this->registerCss();
         $this->registerScript();
-
-        $this->settings = new Settings($this->getUserConfiguration());
 
         $this->registerHook("entry_before_display", [$this, "content_modification_hook"]);
         $this->registerHook("entry_before_insert", [$this, "image_upload_hook"]);
