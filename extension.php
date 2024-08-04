@@ -61,7 +61,7 @@ EOT
 
         $defaultVolume = $this->getDefaultVolume();
         file_put_contents($script_file_path, <<<EOT
-document.addEventListener("loadeddata", function(e) {
+document.addEventListener("play", function(e) {
     if(e.target && e.target.nodeName == "video") {
         e.target.volume = $defaultVolume;
         console.log("Loaded data ", e);
