@@ -24,6 +24,7 @@ class ImageCacheExtension extends Minz_Extension
 
         $this->registerTranslates();
         $this->registerCss();
+        $this->registerScript();
 
         $this->settings = new Settings($this->getUserConfiguration());
 
@@ -36,6 +37,7 @@ class ImageCacheExtension extends Minz_Extension
         $current_user = Minz_Session::paramString('currentUser');
         $css_file_name = "style.$current_user.css";
         $css_file_path = join(DIRECTORY_SEPARATOR, [$this->getPath(), 'static', $css_file_name]);
+
         file_put_contents($css_file_path, <<<EOT
 img.cache-image, video.cache-image {
     min-width: 100px;
@@ -48,6 +50,28 @@ EOT
 
         if (file_exists($css_file_path)) {
             Minz_View::appendStyle($this->getFileUrl($css_file_name, 'css'));
+        }
+    }
+
+    private function registerScript(): void
+    {
+        $current_user = Minz_Session::paramString('currentUser');
+        $script_file_name = "script.$current_user.js";
+        $script_file_path = join(DIRECTORY_SEPARATOR, [$this->getPath(), 'static', $script_file_name]);
+
+        $defaultVolume = $this->getDefaultVolume();
+        file_put_contents($script_file_path, <<<EOT
+document.addEventListener("loadeddata", function(e) {
+    if(e.target && e.target.nodeName == "video") {
+        e.target.volume = $defaultVolume;
+        console.log("Loaded data ", e);
+    }
+});
+EOT
+        );
+
+        if (file_exists($script_file_path)) {
+            Minz_View::appendScript($this->getFileUrl($script_file_name, 'js'));
         }
     }
 
@@ -544,8 +568,6 @@ EOT
 
     private function addDefaultVideoAttributes(DOMElement $video): void
     {
-        $defaultVolume = $this->getDefaultVolume();
-        $video->setAttribute("onloadeddata", "this.volume=$defaultVolume");
         $this->addClass($video, "cache-image");
     }
 }
