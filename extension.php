@@ -43,6 +43,7 @@ img.cache-image, video.cache-image {
     min-width: 100px;
     min-height: 100px;
     max-height: 50vh;
+    object-fit: contain;
     background-color: red;
 }
 EOT
