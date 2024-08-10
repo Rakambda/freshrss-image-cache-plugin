@@ -189,7 +189,7 @@ EOT
                 if ($result) {
                     $image->setAttribute("previous-src", $src);
                     $image->setAttribute("src", $result);
-                    $this->addClass($image, "cache-image");
+                    $this->addDefaultImageAttributes($image);
                     Minz_Log::debug("ImageCache[$callSource]: Replaced image with $result");
 
                     if ($this->isVideoLink($src)) {
@@ -208,7 +208,7 @@ EOT
                 if ($result) {
                     $image->setAttribute("previous-srcset", $srcSet);
                     $image->setAttribute("srcset", $result);
-                    $this->addClass($image, "cache-image");
+                    $this->addDefaultImageAttributes($image);
                     Minz_Log::debug("ImageCache[$callSource]: Replaced with $result");
                 } else {
                     Minz_Log::debug("ImageCache[$callSource]: Failed replacing image set");
@@ -218,13 +218,6 @@ EOT
 
         foreach ($videos as $video) {
             Minz_Log::debug("ImageCache[$callSource]: Found video");
-
-            if (!$video->hasAttribute("controls")) {
-                $video->setAttribute("controls", "true");
-            }
-            if ($video->hasAttribute("loop")) {
-                $video->removeAttribute("loop");
-            }
 
             if ($video->hasAttribute("src")) {
                 $src = $video->getAttribute("src");
@@ -306,11 +299,9 @@ EOT
 
     private function addClass(DOMElement $node, string $clazz): void
     {
-        if ($node->hasAttribute("controls")) {
-            $previous = $node->getAttribute('class');
+        $previous = $node->getAttribute('class');
+        if (!str_contains($previous, $clazz)) {
             $node->setAttribute('class', "$previous $clazz");
-        } else {
-            $node->setAttribute('class', $clazz);
         }
     }
 
@@ -323,7 +314,7 @@ EOT
             $image = $doc->createElement('img');
             $image->setAttribute('src', $newLink);
             $image->setAttribute('previous-src', $originalLink);
-            $image->setAttribute('class', 'reddit-image cache-image');
+            $this->addDefaultImageAttributes($image);
 
             $this->appendAfter($node, $this->wrapElement($doc, $image));
             Minz_Log::debug("[ImageCache]: Added image link with $originalLink => $newLink");
@@ -343,8 +334,6 @@ EOT
             $source->setAttribute('previous-src', $originalLink);
 
             $video = $doc->createElement('video');
-            $video->setAttribute('controls', 'true');
-            $video->setAttribute('class', 'reddit-image');
             $this->addDefaultVideoAttributes($video);
             $video->appendChild($source);
 
@@ -566,11 +555,30 @@ EOT
         return max(0, min(1, $this->settings->getVideoDefaultVolume()));
     }
 
+    private function addDefaultImageAttributes(DOMElement $image): void
+    {
+        $this->addClass($image, "cache-image");
+        $this->addClass($image, "reddit-image");
+    }
+
     private function addDefaultVideoAttributes(DOMElement $video): void
     {
         $this->addClass($video, "cache-image");
-        if($this->getDefaultVolume() <= 0){
-            $video->setAttribute('muted', 'true');
+        $this->addClass($video, "reddit-image");
+
+        if (!$video->hasAttribute("controls")) {
+            $video->setAttribute("controls", "true");
+        }
+        if (!$video->hasAttribute("autoplay")) {
+            $video->setAttribute('autoplay', 'true');
+        }
+        if (!$video->hasAttribute("loop")) {
+            $video->setAttribute("loop", "true");
+        }
+        if (!$video->hasAttribute("muted")) {
+            if ($this->getDefaultVolume() <= 0) {
+                $video->setAttribute('muted', 'true');
+            }
         }
     }
 }
