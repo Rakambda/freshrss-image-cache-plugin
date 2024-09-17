@@ -227,7 +227,7 @@ EOT
                     continue;
                 }
 
-                Minz_Log::debug("ImageCache[$callSource]: Found video source $src");
+                Minz_Log::debug("ImageCache[$callSource]: Found video src $src");
                 $result = $singleElementCallback($src);
                 if ($result) {
                     $video->setAttribute("previous-src", $src);
@@ -236,6 +236,24 @@ EOT
                     Minz_Log::debug("ImageCache[$callSource]: Replaced with $result");
                 } else {
                     Minz_Log::debug("ImageCache[$callSource]: Failed replacing video src");
+                }
+            }
+
+            if ($video->hasAttribute("poster")) {
+                $poster = $video->getAttribute("poster");
+                if ($this->isDisabled($poster)) {
+                    Minz_Log::debug("ImageCache[$callSource]: Found disabled video poster $poster");
+                    continue;
+                }
+
+                Minz_Log::debug("ImageCache[$callSource]: Found video poster $poster");
+                $result = $singleElementCallback($poster);
+                if ($result) {
+                    $video->setAttribute("previous-poster", $poster);
+                    $video->setAttribute("poster", $result);
+                    Minz_Log::debug("ImageCache[$callSource]: Replaced with $result");
+                } else {
+                    Minz_Log::debug("ImageCache[$callSource]: Failed replacing video poster");
                 }
             }
 
