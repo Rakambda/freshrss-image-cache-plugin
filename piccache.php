@@ -521,7 +521,7 @@ function reply_video(CacheHit $cache_hit): void
 
         $offset = intval($matches[1]);
         $end = (isset($matches[2]) && $matches[2]) ? intval($matches[2]) : $filesize;
-        $length = $end - $offset;
+        $length = $end - $offset + 1;
     } else {
         $partialContent = false;
     }
@@ -535,6 +535,9 @@ function reply_video(CacheHit $cache_hit): void
         $bytes_length = $offset + $length - 1;
         header("HTTP/1.1 206 Partial Content");
         header("Content-Range: bytes $offset-$bytes_length/$filesize");
+        header("Content-Length: $length");
+    } else {
+        header("Content-Length: $filesize");
     }
 
     $filename = pathinfo($cache_hit->filename, PATHINFO_BASENAME);
@@ -542,7 +545,6 @@ function reply_video(CacheHit $cache_hit): void
     header("X-Piccache-Status: HIT");
     header("X-Piccache-File: $cache_hit->filename");
     header("Content-Type: $cache_hit->content_type");
-    header("Content-Length: $filesize");
     header("Content-Disposition: inline; filename=\"$filename\"");
     header("Accept-Ranges: bytes");
 
@@ -564,7 +566,7 @@ try {
         echo json_encode($fetchHit) . PHP_EOL;
 
     } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        if(!isset($_GET['url'])){
+        if (!isset($_GET['url'])) {
             header("X-Piccache-Error: No URL provided");
             end_wrong_query();
         }
