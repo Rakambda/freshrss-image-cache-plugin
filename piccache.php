@@ -520,10 +520,7 @@ function reply_video(CacheHit $cache_hit): void
         preg_match('/bytes=(\d+)-(\d+)?/', $_SERVER['HTTP_RANGE'], $matches);
 
         $offset = intval($matches[1]);
-        $end = (isset($matches[2]) && $matches[2]) ? intval($matches[2]) : $filesize;
-        if ($end === 0) {
-            $end = $filesize;
-        }
+        $end = (isset($matches[2]) && $matches[2]) ? intval($matches[2]) : ($filesize - 1);
         $length = $end - $offset + 1;
     } else {
         $partialContent = false;
@@ -535,9 +532,9 @@ function reply_video(CacheHit $cache_hit): void
     fclose($file);
 
     if ($partialContent) {
-        $bytes_length = $offset + $length - 1;
+        $offset_end = $offset + $length - 1;
         header("HTTP/1.1 206 Partial Content");
-        header("Content-Range: bytes $offset-$bytes_length/$filesize");
+        header("Content-Range: bytes $offset-$offset_end/$filesize");
         header("Content-Length: $length");
     } else {
         header("Content-Length: $filesize");
