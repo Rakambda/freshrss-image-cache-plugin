@@ -521,6 +521,9 @@ function reply_video(CacheHit $cache_hit): void
 
         $offset = intval($matches[1]);
         $end = (isset($matches[2]) && $matches[2]) ? intval($matches[2]) : $filesize;
+        if ($end === 0) {
+            $end = $filesize;
+        }
         $length = $end - $offset + 1;
     } else {
         $partialContent = false;
