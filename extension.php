@@ -41,8 +41,12 @@ class ImageCacheExtension extends Minz_Extension
         file_put_contents($css_file_path, <<<EOT
 img.cache-image, video.cache-image {
     min-width: 100px;
+    width: auto !important;
+    
     min-height: 100px;
+    height: auto !important;
     max-height: 50vh !important;
+    
     object-fit: contain;
     background-color: red;
 }
