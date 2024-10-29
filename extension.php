@@ -98,7 +98,7 @@ EOT
      * @throws Minz_ConfigurationParamException
      * @throws Minz_PermissionDeniedException
      */
-    public function content_modification_hook($entry)
+    public function content_modification_hook(FreshRSS_Entry $entry): FreshRSS_Entry
     {
         $entry->_content(self::swapUrls($entry->content()));
         return $entry;
@@ -109,7 +109,7 @@ EOT
      * @throws Minz_ConfigurationParamException
      * @throws Minz_PermissionDeniedException
      */
-    public function image_upload_hook($entry)
+    public function image_upload_hook(FreshRSS_Entry $entry): FreshRSS_Entry
     {
         self::uploadUrls($entry->content());
         return $entry;
