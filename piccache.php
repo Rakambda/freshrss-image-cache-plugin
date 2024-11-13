@@ -8,11 +8,11 @@ class Config
 
     public static function get_config(): array
     {
-        $configPath = getenv("PICCACHE_CONFIG_PATH");
-        if (!$configPath) {
-            $configPath = "/cache/config.json";
-        }
         if (!Config::$config) {
+            $configPath = getenv("PICCACHE_CONFIG_PATH");
+            if (!$configPath) {
+                $configPath = "/cache/config.json";
+            }
             $json_content = file_get_contents($configPath);
             Config::$config = json_decode($json_content, associative: true);
         }
