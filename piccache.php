@@ -426,8 +426,9 @@ class Cache
 
     public function store_in_cache(string $url): FetchHit
     {
-        if ($this->is_cached($url)) {
-            return new FetchHit(true, false, comment: 'File already exists in cache');
+        $cached = $this->is_cached($url);
+        if ($cached) {
+            return new FetchHit(true, false, filename: $cached, comment: 'File already exists in cache');
         }
 
         [$content, $headers] = $this->get_link_content($url);
@@ -475,14 +476,15 @@ class Cache
         return new CacheHit(true, $file_name, $file_size, $content_type);
     }
 
-    private function is_cached(string $url): bool
+    private function is_cached(string $url): ?string
     {
         $folder = $this->get_folder($url);
         $hash = $this->get_url_hash($url);
-        if (glob("$folder/$hash*", GLOB_NOSORT)) {
-            return true;
+        $matched = glob("$folder/$hash*", GLOB_NOSORT);
+        if ($matched) {
+            return $matched[0];
         }
-        return false;
+        return null;
     }
 
     private function get_url_hash(string $url): string
