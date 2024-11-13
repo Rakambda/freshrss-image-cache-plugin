@@ -563,8 +563,10 @@ try {
             end_wrong_query();
         }
 
-        $fetchHit = $cache->store_in_cache($post_data['url']);
+        $url = $post_data['url'];
+        $fetchHit = $cache->store_in_cache($url);
         header('Content-Type: application/json; charset=utf-8');
+        header("X-Piccache-Url: $url");
         echo json_encode($fetchHit) . PHP_EOL;
 
     } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
@@ -581,6 +583,7 @@ try {
         $cache_hit = $cache->get_cached_data($url);
         if (!$cache_hit->fetched) {
             header('X-Piccache-Status: MISS');
+            header("X-Piccache-Url: $url");
             header("Location: $url", response_code: 302);
             exit();
         } else {
@@ -588,6 +591,7 @@ try {
                 reply_video($cache_hit);
             } else {
                 header("X-Piccache-Status: HIT");
+                header("X-Piccache-Url: $url");
                 header("X-Piccache-File: $cache_hit->filename");
                 header("Content-Type: $cache_hit->content_type");
                 header("Content-Length: $cache_hit->length");
@@ -605,9 +609,11 @@ try {
         $cache_hit = $cache->get_cached_data($url);
         if (!$cache_hit->fetched) {
             header('X-Piccache-Status: MISS', response_code: 404);
+            header("X-Piccache-Url: $url");
             exit();
         } else {
             header('X-Piccache-Status: HIT');
+            header("X-Piccache-Url: $url");
             header("X-Piccache-File: $cache_hit->filename");
             header("Content-Type: $cache_hit->content_type");
             header("Content-Length: $cache_hit->length", response_code: 204);
