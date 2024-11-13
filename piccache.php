@@ -2,38 +2,15 @@
 
 use JetBrains\PhpStorm\NoReturn;
 
-const CACHE_PLACE_PATH = "/cache";
-const CONFIG_PATH = "/cache/config.json";
-const CACHE_FOLDER_NAME = 'piccache';
-const HASH_SUBFOLDER_COUNT = 3;
-const ENABLE_DEBUGGING = false;
-
-if (ENABLE_DEBUGGING) {
-    $logFile = "/app/www/data/users/_/piccache_error.log";
-    if (!file_exists($logFile)) {
-        touch($logFile);
-    }
-
-    if (filesize($logFile) >= 1048576) { // 10Mb
-        $fp = fopen($logFile, "w");
-        fclose($fp);
-    }
-
-    ini_set("log_errors", 1);
-    ini_set("log_errors_max_len", 2048);
-    ini_set("error_log", $logFile);
-    error_reporting(E_ALL);
-    ini_set('display_errors', '1');
-}
-
 class Config
 {
     private static ?array $config = null;
 
     public static function get_config(): array
     {
+        $configPath = getenv("PICCACHE_CONFIG_PATH") ?? "/cache/config.json";
         if (!Config::$config) {
-            $json_content = file_get_contents(CONFIG_PATH);
+            $json_content = file_get_contents($configPath);
             Config::$config = json_decode($json_content, associative: true);
         }
         return Config::$config;
@@ -65,6 +42,60 @@ class Config
         }
         return null;
     }
+
+    public static function get_hash_subfolder_count(): int
+    {
+        $config = self::get_config();
+        if (isset($config['hash_subfolder_count'])) {
+            return intval($config['hash_subfolder_count']);
+        }
+        return 3;
+    }
+
+    public static function get_root_folder(): string
+    {
+        $config = self::get_config();
+        if (isset($config['root_folder'])) {
+            return $config['root_folder'];
+        }
+        return "/cache/piccache";
+    }
+
+    public static function get_debug_enabled(): bool
+    {
+        $config = self::get_config();
+        if (isset($config['debug'])) {
+            return boolval($config['debug']);
+        }
+        return false;
+    }
+
+    public static function get_debug_path(): ?string
+    {
+        $config = self::get_config();
+        if (isset($config['debug_path'])) {
+            return $config['debug_path'];
+        }
+        return "/app/www/data/users/_/piccache_error.log";
+    }
+}
+
+if (Config::get_debug_enabled()) {
+    $logFile = Config::get_debug_path();
+    if (!file_exists($logFile)) {
+        touch($logFile);
+    }
+
+    if (filesize($logFile) >= 1048576) { // 10Mb
+        $fp = fopen($logFile, "w");
+        fclose($fp);
+    }
+
+    ini_set("log_errors", 1);
+    ini_set("log_errors_max_len", 2048);
+    ini_set("error_log", $logFile);
+    error_reporting(E_ALL);
+    ini_set('display_errors', '1');
 }
 
 class CacheHit
@@ -159,7 +190,8 @@ class Cache
         $host_parts = explode('.', $parsed_url['host']);
         $domain = implode('.', array_slice($host_parts, count($host_parts) - 2));
         $sub_hashes = [];
-        for ($i = 0; $i < HASH_SUBFOLDER_COUNT; $i++) {
+        $hash_subfolder_count = Config::get_hash_subfolder_count();
+        for ($i = 0; $i < $hash_subfolder_count; $i++) {
             if ($i >= strlen($url_hash)) {
                 $sub_hashes[] = "_";
             } else {
@@ -167,7 +199,7 @@ class Cache
             }
         }
 
-        return $this->join_paths(CACHE_PLACE_PATH, CACHE_FOLDER_NAME, $domain, ...$sub_hashes);
+        return $this->join_paths(Config::get_root_folder(), $domain, ...$sub_hashes);
     }
 
     private function get_filename_extension(string $url, string $store_filename): string
