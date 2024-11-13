@@ -584,7 +584,8 @@ try {
         if (!$cache_hit->fetched) {
             header('X-Piccache-Status: MISS');
             header("X-Piccache-Url: $url");
-            header("Location: $url", response_code: 302);
+            header("Location: $url");
+            http_response_code(302);
             exit();
         } else {
             if (str_starts_with($cache_hit->content_type, 'video/')) {
@@ -608,15 +609,17 @@ try {
 
         $cache_hit = $cache->get_cached_data($url);
         if (!$cache_hit->fetched) {
-            header('X-Piccache-Status: MISS', response_code: 404);
+            header('X-Piccache-Status: MISS');
             header("X-Piccache-Url: $url");
+            http_response_code(404);
             exit();
         } else {
             header('X-Piccache-Status: HIT');
             header("X-Piccache-Url: $url");
             header("X-Piccache-File: $cache_hit->filename");
             header("Content-Type: $cache_hit->content_type");
-            header("Content-Length: $cache_hit->length", response_code: 204);
+            header("Content-Length: $cache_hit->length");
+            http_response_code(204);
         }
 
     } else {
@@ -624,7 +627,8 @@ try {
     }
 } catch (Exception $e) {
     header("X-Piccache-Error: Uncaught exception");
-    header("Content-Type: text/plain", response_code: 500);
+    header("Content-Type: text/plain");
+    http_response_code(500);
     error_log($e);
 }
 exit();
