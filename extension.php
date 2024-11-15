@@ -4,7 +4,7 @@ use ImageCache\Settings;
 
 class ImageCacheExtension extends Minz_Extension
 {
-    const MAX_CACHED = 500;
+    const MAX_CACHED = 5000;
     public array $CACHE = [];
 
     public Settings $settings;
