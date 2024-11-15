@@ -4,9 +4,7 @@ use ImageCache\Settings;
 
 class ImageCacheExtension extends Minz_Extension
 {
-    const MAX_CACHED = 5000;
     public array $CACHE = [];
-
     public Settings $settings;
 
     public function autoload(string $class_name): void
@@ -92,6 +90,8 @@ EOT
                 'image_cache_disabled_url' => Minz_Request::paramString('image_cache_disabled_url'),
                 'image_recache_url' => Minz_Request::paramString('image_recache_url'),
                 'video_default_volume' => Minz_Request::paramString('video_default_volume'),
+                'upload_retry_count' => Minz_Request::paramInt('upload_retry_count'),
+                'max_cache_elements' => Minz_Request::paramInt('max_cache_elements'),
             ];
             $this->setUserConfiguration($configuration);
         }
@@ -428,23 +428,30 @@ EOT
         return true;
     }
 
-    private function uploadSetUrls(array $matches): void
+    private function uploadSetUrls(array $matches): bool
     {
-        self::uploadUrl($matches[1]);
+        return self::uploadUrl($matches[1]);
     }
 
-    private function uploadUrl(string $to_cache_cache_url): void
+    private function uploadUrl(string $to_cache_cache_url): bool
     {
         if ($this->isCachedOnRemote($to_cache_cache_url)) {
-            return;
+            return true;
         }
-        $cached = self::postUrl($this->settings->getImageCachePostUrl(), [
-            "access_token" => $this->settings->getImageCacheAccessToken(),
-            "url" => $to_cache_cache_url
-        ]);
-        if ($cached && $this->isRecache($to_cache_cache_url)) {
-            $this->setCachedOnRemote($to_cache_cache_url);
+        $max_tries = 1 + $this->settings->getUploadRetryCount();
+        for ($i = 0; $i < $max_tries; $i++) {
+            $cached = self::postUrl($this->settings->getImageCachePostUrl(), [
+                "access_token" => $this->settings->getImageCacheAccessToken(),
+                "url" => $to_cache_cache_url
+            ]);
+            if ($cached) {
+                if ($this->isRecache($to_cache_cache_url)) {
+                    $this->setCachedOnRemote($to_cache_cache_url);
+                }
+                return true;
+            }
         }
+        return false;
     }
 
     private function postUrl(string $url, array $data): bool
@@ -567,7 +574,7 @@ EOT
     private function setCachedOnRemote(string $url): void
     {
         $count = count($this->CACHE);
-        if ($count >= self::MAX_CACHED) {
+        if ($count >= $this->settings->getMaxCacheElements()) {
             array_shift($this->CACHE);
         }
         $this->CACHE[] = $url;

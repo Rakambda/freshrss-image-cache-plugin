@@ -8,5 +8,7 @@ return array(
 		'post_url' => 'Post URL (for freshRSS to inform)',
 		'access_token' => 'Access Token (for freshRSS to inform)',
 		'video_default_volume' => 'Default video volume',
+		'upload_retry_count' => 'Maximum number of retries for upload',
+		'max_cache_elements' => 'Maximum number of urls saved as "cached" when retrying caching',
 	),
 ); 

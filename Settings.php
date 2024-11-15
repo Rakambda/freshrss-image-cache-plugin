@@ -10,6 +10,8 @@ class Settings
     const DEFAULT_RECACHE_URL = "";
     const DEFAULT_CACHE_ACCESS_TOKEN = "";
     const DEFAULT_VIDEO_VOLUME = 1;
+    const DEFAULT_UPLOAD_RETRY_COUNT = 0;
+    const DEFAULT_MAX_CACHE_ELEMENTS = 5000;
 
     private array $settings;
 
@@ -70,5 +72,23 @@ class Settings
         }
 
         return self::DEFAULT_VIDEO_VOLUME;
+    }
+
+    public function getUploadRetryCount(): int
+    {
+        if (array_key_exists('upload_retry_count', $this->settings)) {
+            return (int)$this->settings['upload_retry_count'];
+        }
+
+        return self::DEFAULT_UPLOAD_RETRY_COUNT;
+    }
+
+    public function getMaxCacheElements(): int
+    {
+        if (array_key_exists('max_cache_elements', $this->settings)) {
+            return (int)$this->settings['max_cache_elements'];
+        }
+
+        return self::DEFAULT_MAX_CACHE_ELEMENTS;
     }
 }
