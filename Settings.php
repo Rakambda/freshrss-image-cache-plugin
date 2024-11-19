@@ -11,6 +11,7 @@ class Settings
     const DEFAULT_CACHE_ACCESS_TOKEN = "";
     const DEFAULT_VIDEO_VOLUME = 1;
     const DEFAULT_UPLOAD_RETRY_COUNT = 0;
+    const DEFAULT_UPLOAD_RETRY_DELAY = 0;
     const DEFAULT_MAX_CACHE_ELEMENTS = 5000;
 
     private array $settings;
@@ -81,6 +82,15 @@ class Settings
         }
 
         return self::DEFAULT_UPLOAD_RETRY_COUNT;
+    }
+
+    public function getUploadRetryDelay(): int
+    {
+        if (array_key_exists('upload_retry_delay', $this->settings)) {
+            return (int)$this->settings['upload_retry_delay'];
+        }
+
+        return self::DEFAULT_UPLOAD_RETRY_DELAY;
     }
 
     public function getMaxCacheElements(): int

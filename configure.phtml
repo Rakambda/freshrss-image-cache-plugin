@@ -32,6 +32,12 @@
         </div>
     </div>
     <div class="form-group">
+        <label class="group-name" for="upload_retry_delay"><?php echo _t('ext.imagecache.upload_retry_delay'); ?></label>
+        <div class="group-controls">
+            <input type="number" step="1" min="0" max="300" name="upload_retry_count" id="upload_retry_delay" value="<?php echo $this->settings->getUploadRetryDelay(); ?>">
+        </div>
+    </div>
+    <div class="form-group">
         <label class="group-name" for="max_cache_elements"><?php echo _t('ext.imagecache.max_cache_elements'); ?></label>
         <div class="group-controls">
             <input type="number" step="1" min="1" max="999999" name="max_cache_elements" id="max_cache_elements" value="<?php echo $this->settings->getMaxCacheElements(); ?>">

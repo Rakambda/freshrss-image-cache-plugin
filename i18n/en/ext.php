@@ -9,6 +9,7 @@ return array(
 		'access_token' => 'Access Token (for freshRSS to inform)',
 		'video_default_volume' => 'Default video volume',
 		'upload_retry_count' => 'Maximum number of retries for upload',
+		'upload_retry_delay' => 'Delay between upload retries (seconds)',
 		'max_cache_elements' => 'Maximum number of urls saved as "cached" when retrying caching',
 	),
 ); 

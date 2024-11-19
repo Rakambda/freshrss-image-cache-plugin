@@ -450,6 +450,7 @@ EOT
                 }
                 return true;
             }
+            sleep($this->settings->getUploadRetryDelay());
         }
         return false;
     }
