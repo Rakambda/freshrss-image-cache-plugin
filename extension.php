@@ -436,14 +436,16 @@ EOT
     private function uploadUrl(string $to_cache_cache_url): bool
     {
         if ($this->isCachedOnRemote($to_cache_cache_url)) {
+            Minz_Log::debug("ImageCache: URL $to_cache_cache_url is already cached on remote");
             return true;
         }
         $max_tries = 1 + $this->settings->getUploadRetryCount();
-        for ($i = 0; $i < $max_tries; $i++) {
+        for ($i = 1; $i <= $max_tries; $i++) {
             $cached = self::postUrl($this->settings->getImageCachePostUrl(), [
                 "access_token" => $this->settings->getImageCacheAccessToken(),
                 "url" => $to_cache_cache_url
             ]);
+            Minz_Log::debug("ImageCache: Try $i, $to_cache_cache_url cache result : $cached");
             if ($cached) {
                 if ($this->isRecache($to_cache_cache_url)) {
                     $this->setCachedOnRemote($to_cache_cache_url);
@@ -475,6 +477,7 @@ EOT
         $response = curl_exec($curl);
         curl_close($curl);
 
+        Minz_Log::debug("ImageCache: Upload response : $response");
         if (!$response) {
             return false;
         }
