@@ -462,22 +462,36 @@ EOT
         $data = json_encode($data);
         $dataLength = strlen($data);
         $curl = curl_init();
+        $headers = [];
+
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "POST");
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-        curl_setopt($curl, CURLOPT_HEADER, true);
         curl_setopt($curl, CURLOPT_HTTPHEADER, [
             "Content-Type: application/json;charset='utf-8'",
             "Content-Length: $dataLength",
             "Accept: application/json"
         ]);
+        curl_setopt($curl, CURLOPT_HEADERFUNCTION,
+            function ($ch, $header) use (&$headers) {
+                $len = strlen($header);
+                $header = explode(':', $header, 2);
+                // ignore invalid headers
+                if (count($header) < 2) {
+                    return $len;
+                }
+
+                $headers[strtolower(trim($header[0]))][] = trim($header[1]);
+                return $len;
+            }
+        );
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
         curl_setopt($curl, CURLOPT_TIMEOUT, 10);
         $response = curl_exec($curl);
         curl_close($curl);
 
-        Minz_Log::debug("ImageCache: Upload response : $response");
+        Minz_Log::debug("ImageCache: Upload response : $response // headers : {${json_encode($headers)}}");
         if (!$response) {
             return false;
         }
