@@ -491,7 +491,7 @@ EOT
         $response = curl_exec($curl);
         curl_close($curl);
 
-        Minz_Log::debug("ImageCache: Upload response : $response // headers : {${json_encode($headers)}}");
+        Minz_Log::debug("ImageCache: Upload response : $response");
         if (!$response) {
             return false;
         }
