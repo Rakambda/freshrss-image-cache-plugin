@@ -500,15 +500,14 @@ class Cache
     public function get_cached_data(string $url): CacheHit
     {
         $this->store_in_cache($url);
-        if (!$this->is_cached($url)) {
+        $cached = $this->is_cached($url);
+        if (!$cached) {
             return new CacheHit();
         }
 
-        $file_name = $this->get_filename($url);
-        $file_size = filesize($file_name);
-
-        $content_type = mime_content_type($file_name);
-        return new CacheHit(true, $file_name, $file_size, $content_type);
+        $file_size = filesize($cached);
+        $content_type = mime_content_type($cached);
+        return new CacheHit(true, $cached, $file_size, $content_type);
     }
 
     private function is_cached(string $url): ?string

@@ -31,6 +31,7 @@
   "require": {
     "ext-dom": "*",
     "ext-curl": "*",
-    "ext-libxml": "*"
+    "ext-libxml": "*",
+    "ext-fileinfo": "*"
   }
 }
