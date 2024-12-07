@@ -32,11 +32,9 @@ class ImageCacheExtension extends Minz_Extension
 
     private function registerCss(): void
     {
-        $current_user = Minz_Session::paramString('currentUser');
-        $css_file_name = "style.$current_user.css";
-        $css_file_path = join(DIRECTORY_SEPARATOR, [$this->getPath(), 'static', $css_file_name]);
+        $css_file_name = "style.css";
 
-        file_put_contents($css_file_path, <<<EOT
+        $this->saveFile($css_file_name, <<<EOT
 img.cache-image, video.cache-image {
     min-width: 100px;
     width: auto !important;
@@ -51,19 +49,15 @@ img.cache-image, video.cache-image {
 EOT
         );
 
-        if (file_exists($css_file_path)) {
-            Minz_View::appendStyle($this->getFileUrl($css_file_name, 'css'));
-        }
+        Minz_View::appendStyle($this->getFileUrl($css_file_name, 'css', false));
     }
 
     private function registerScript(): void
     {
-        $current_user = Minz_Session::paramString('currentUser');
-        $script_file_name = "script.$current_user.js";
-        $script_file_path = join(DIRECTORY_SEPARATOR, [$this->getPath(), 'static', $script_file_name]);
+        $script_file_name = "script.js";
 
         $defaultVolume = $this->getDefaultVolume();
-        file_put_contents($script_file_path, <<<EOT
+        $this->saveFile($script_file_name, <<<EOT
 document.getElementById("stream").addEventListener("play", function(e) {
     if(e.target && e.target.nodeName == "video") {
         e.target.volume = $defaultVolume;
@@ -73,9 +67,7 @@ document.getElementById("stream").addEventListener("play", function(e) {
 EOT
         );
 
-        if (file_exists($script_file_path)) {
-            Minz_View::appendScript($this->getFileUrl($script_file_name, 'js'));
-        }
+        Minz_View::appendStyle($this->getFileUrl($script_file_name, 'js', false));
     }
 
     public function handleConfigureAction(): void
