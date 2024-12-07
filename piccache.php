@@ -81,6 +81,15 @@ class Config
         }
         return "/app/www/data/users/_/piccache_error.log";
     }
+
+    public static function get_permissions(): int
+    {
+        $config = self::get_config();
+        if (isset($config['permissions_all'])) {
+            return 0777;
+        }
+        return 0775;
+    }
 }
 
 if (Config::get_debug_enabled()) {
@@ -172,7 +181,7 @@ class Cache
         if (!file_exists($hash_folder)) {
             umask(0);
             mkdir($hash_folder, recursive: true);
-            chmod($hash_folder, 0775);
+            chmod($hash_folder, Config::get_permissions());
         }
 
         $store_filename = explode('?', pathinfo($url, PATHINFO_BASENAME))[0];
@@ -493,7 +502,7 @@ class Cache
 
         umask(0);
         file_put_contents($file_name, $content);
-        chmod($file_name, 0775);
+        chmod($file_name, Config::get_permissions());
         return new FetchHit(true, true, $file_name, $headers, 'Added to cache');
     }
 
