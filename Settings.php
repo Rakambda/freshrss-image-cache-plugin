@@ -13,6 +13,7 @@ class Settings
     const DEFAULT_UPLOAD_RETRY_COUNT = 0;
     const DEFAULT_UPLOAD_RETRY_DELAY = 0;
     const DEFAULT_MAX_CACHE_ELEMENTS = 5000;
+    const DEFAULT_REMOVE_WRONG_TAG = false;
 
     private array $settings;
 
@@ -100,5 +101,14 @@ class Settings
         }
 
         return self::DEFAULT_MAX_CACHE_ELEMENTS;
+    }
+
+    public function isRemoveWrongTag(): bool
+    {
+        if (array_key_exists('remove_wrong_tag', $this->settings)) {
+            return (bool)$this->settings['remove_wrong_tag'];
+        }
+
+        return self::DEFAULT_REMOVE_WRONG_TAG;
     }
 }

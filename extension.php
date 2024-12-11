@@ -84,6 +84,7 @@ EOT
                 'video_default_volume' => Minz_Request::paramString('video_default_volume'),
                 'upload_retry_count' => Minz_Request::paramInt('upload_retry_count'),
                 'max_cache_elements' => Minz_Request::paramInt('max_cache_elements'),
+                'remove_wrong_tag' => Minz_Request::paramBoolean('remove_wrong_tag'),
             ];
             $this->setUserConfiguration($configuration);
         }
@@ -191,7 +192,9 @@ EOT
 
                     if ($this->isVideoLink($src)) {
                         $this->appendVideo($doc, $image, $src, $result);
-//                        $image->parentNode->removeChild($image);
+                        if ($this->settings->isRemoveWrongTag()){
+                            $image->parentNode->removeChild($image);
+                        }
                     }
                 } else {
                     Minz_Log::debug("ImageCache[$callSource]: Failed replacing image");
@@ -552,8 +555,8 @@ EOT
 
         if (isset($parsed_url['path'])) {
             $path = $parsed_url['path'];
-            if (str_ends_with($path, ".gifv")
-                || str_ends_with($path, ".mp4")
+            if (str_ends_with($path, ".mp4")
+//                || str_ends_with($path, ".gifv")
             ) {
                 return true;
             }
