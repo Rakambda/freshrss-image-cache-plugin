@@ -503,6 +503,12 @@ class Cache
         umask(0);
         file_put_contents($file_name, $content);
         chmod($file_name, Config::get_permissions());
+
+        if (filesize($file_name) === 0) {
+            unlink($file_name);
+            return new FetchHit(false, true, $file_name, $headers, 'Content size is empty');
+        }
+
         return new FetchHit(true, true, $file_name, $headers, 'Added to cache');
     }
 
