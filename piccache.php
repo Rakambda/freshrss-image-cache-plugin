@@ -144,6 +144,33 @@ class FetchHit
     }
 }
 
+class FetchLinkData
+{
+    public bool $fetched;
+    /**
+     * @var FetchHeader[]
+     */
+    public array $headers;
+
+    public function __construct(bool $fetched, array $headers = [])
+    {
+        $this->fetched = $fetched;
+        $this->headers = $headers;
+    }
+}
+
+class FetchHeader
+{
+    public string $name;
+    public string $value;
+
+    public function __construct(string $name, string $value)
+    {
+        $this->name = $name;
+        $this->value = $value;
+    }
+}
+
 class Cache
 {
     private array $extensions;
@@ -151,22 +178,22 @@ class Cache
     public function __construct()
     {
         $this->extensions = [
-            'jpg' => 'jpg',
-            'jpeg' => 'jpg',
-            'png' => 'png',
-            'gif' => 'gif',
-            'svg' => 'svg',
-            'svg+xml' => 'svg',
-            'webp' => 'webp',
-            'avif' => 'avif',
-            'tiff' => 'tiff',
+                'jpg' => 'jpg',
+                'jpeg' => 'jpg',
+                'png' => 'png',
+                'gif' => 'gif',
+                'svg' => 'svg',
+                'svg+xml' => 'svg',
+                'webp' => 'webp',
+                'avif' => 'avif',
+                'tiff' => 'tiff',
 
-            'mp4' => 'mp4',
-            'webm' => 'webm',
+                'mp4' => 'mp4',
+                'webm' => 'webm',
 
-            'aac' => 'aac',
-            'mp3' => 'mp3',
-            'mpeg' => 'mp3',
+                'aac' => 'aac',
+                'mp3' => 'mp3',
+                'mpeg' => 'mp3',
         ];
     }
 
@@ -250,8 +277,8 @@ class Cache
 
         $content_type_value = $parsed_content_type["value"];
         if (str_starts_with($content_type_value, "image/")
-            || str_starts_with($content_type_value, "video/")
-            || str_starts_with($content_type_value, "audio/")
+                || str_starts_with($content_type_value, "video/")
+                || str_starts_with($content_type_value, "audio/")
         ) {
 
             $parts = explode('/', $content_type_value, 2);
@@ -278,19 +305,19 @@ class Cache
         curl_setopt($ch, CURLOPT_NOBODY, true);
         curl_setopt($ch, CURLOPT_HEADER, true);
         curl_setopt($ch, CURLOPT_HEADERFUNCTION,
-            function ($curl, $header) use (&$raw_content_type) {
-                $len = strlen($header);
+                function ($curl, $header) use (&$raw_content_type) {
+                    $len = strlen($header);
 
-                $header = explode(':', $header, 2);
-                if (count($header) < 2) { // ignore invalid headers
+                    $header = explode(':', $header, 2);
+                    if (count($header) < 2) { // ignore invalid headers
+                        return $len;
+                    }
+
+                    if (strtolower(trim($header[0])) == "content-type") {
+                        $raw_content_type = trim($header[1]);
+                    }
                     return $len;
                 }
-
-                if (strtolower(trim($header[0])) == "content-type") {
-                    $raw_content_type = trim($header[1]);
-                }
-                return $len;
-            }
         );
         curl_exec($ch);
         curl_close($ch);
@@ -324,34 +351,62 @@ class Cache
         return $retVal;
     }
 
-    private function get_link_content(string $url): array
+    private function fetch_link_content(string $url, string $file_name): FetchLinkData
     {
         $user_agent = Config::get_user_agent();
 
         if ($this->isRedgifs($url)) {
             $url = $this->get_redgifs_url_from_m3u8($url);
             if (!$url) {
-                return [false, []];
+                return new FetchLinkData(false);
             }
         }
         if ($this->isVidble($url)) {
             $url = $this->get_vidble_url($url);
             if (!$url) {
-                return [false, []];
+                return new FetchLinkData(false);
             }
         }
         if ($this->isImgur($url)) {
             $url = $this->get_imgur_url($url);
             if (!$url) {
-                return [false, []];
+                return new FetchLinkData(false);
             }
         }
 
-        $context = stream_context_create(["http" => [
-            'header' => "User-Agent: $user_agent\r\n",
-        ]]);
-        $content = file_get_contents($url, false, $context);
-        return [$content, $http_response_header];
+        $headers = [];
+        $headersDumper = function ($ch, $header) use (&$headers) {
+            $len = strlen($header);
+
+            $header_parts = explode(':', $header . 2);
+            if (count($header) < 2) { // ignore invalid headers
+                return $len;
+            }
+            $headers[] = new FetchHeader(trim($header_parts[0]), trim($header_parts[1]));
+            return $len;
+        };
+
+        set_time_limit(0);
+        $fp = fopen($file_name, 'w+');
+
+        $curl = curl_init();
+        curl_setopt($curl, CURLOPT_URL, $url);
+        curl_setopt($curl, CURLOPT_USERAGENT, $user_agent);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 600);
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($curl, CURLOPT_FILE, $fp);
+        curl_setopt($curl, CURLOPT_HEADERFUNCTION, $headersDumper);
+
+        $result = curl_exec($curl);
+        curl_close($curl);
+        fclose($fp);
+
+        if ($result) {
+            umask(0);
+            chmod($file_name, Config::get_permissions());
+        }
+
+        return new FetchLinkData($result, $headers);
     }
 
     private function get_redgifs_url_from_api(string $url): ?string
@@ -364,7 +419,7 @@ class Cache
         $bearer = Config::get_redgifs_bearer();
 
         $context = stream_context_create(["http" => [
-            'header' => "Authorization: Bearer $bearer\r\nUser-Agent: $user_agent\r\n"
+                'header' => "Authorization: Bearer $bearer\r\nUser-Agent: $user_agent\r\n"
         ]]);
         $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id?views=yes&users=yes&niches=yes", false, $context);
         if (!$api_response) {
@@ -388,7 +443,7 @@ class Cache
         $bearer = Config::get_redgifs_bearer();
 
         $context = stream_context_create(["http" => [
-            'header' => "Authorization: Bearer $bearer\r\nUser-Agent: $user_agent\r\n"
+                'header' => "Authorization: Bearer $bearer\r\nUser-Agent: $user_agent\r\n"
         ]]);
         $api_response = file_get_contents("https://api.redgifs.com/v2/gifs/$gif_id/hd.m3u8", false, $context);
         if (!$api_response) {
@@ -435,7 +490,7 @@ class Cache
         $bearer = Config::get_imgur_client_id();
 
         $context = stream_context_create(["http" => [
-            'header' => "Authorization: Client-ID $bearer\r\nUser-Agent: $user_agent\r\n"
+                'header' => "Authorization: Client-ID $bearer\r\nUser-Agent: $user_agent\r\n"
         ]]);
 
         $api_response = file_get_contents("https://api.imgur.com/3/image/$post_id", false, $context);
@@ -475,8 +530,11 @@ class Cache
             return new FetchHit(true, false, filename: $cached, comment: 'File already exists in cache');
         }
 
-        [$content, $headers] = $this->get_link_content($url);
-        if (!$content) {
+        $file_name = $this->get_filename($url);
+        [$content_fetched, $headers] = $this->fetch_link_content($url, $file_name);
+        if (!$content_fetched) {
+            unlink($file_name);
+
             $response_code = -1;
             if ($headers) {
                 preg_match('/\d{3}/', $headers[0], $matches);
@@ -492,17 +550,13 @@ class Cache
             return new FetchHit(false, false, headers: $headers, comment: 'Could not get media content');
         }
         if ($this->content_type_contains($headers, 'text/html')) {
+            unlink($file_name);
             return new FetchHit(false, true, headers: $headers, comment: 'Response has HTML content type');
         }
-        if (preg_match("#^\s*<!doctype html>.*#i", $content)) {
+        if (preg_match("#^\s*<!doctype html>.*#i", $content_fetched)) {
+            unlink($file_name);
             return new FetchHit(false, true, headers: $headers, comment: 'Response was HTML');
         }
-
-        $file_name = $this->get_filename($url);
-
-        umask(0);
-        file_put_contents($file_name, $content);
-        chmod($file_name, Config::get_permissions());
 
         if (filesize($file_name) === 0) {
             unlink($file_name);
